@@ -7,7 +7,7 @@
 <meta name="description" content="Lumière Intérieure — Consultations de voyance personnalisées avec l'Oracle Belline et l'Oracle de la Triade. Guidance authentique et bienveillante.">
 <meta property="og:title" content="Lumière Intérieure — Voyance & Oracles">
 <meta property="og:description" content="Consultations de voyance personnalisées avec l'Oracle Belline et l'Oracle de la Triade.">
-<meta property="og:image" content=\"héros-voyance.png\">
+<meta property="og:image" content="héros-voyance.png">
 
 <!-- Fonts -->
 <link href="https://api.fontshare.com/v2/css?f[]=zodiak@400,500&display=swap" rel="stylesheet">
@@ -68,12 +68,12 @@
     <!-- Hero -->
     <section class="hero">
       <div class="hero__bg">
-        <img src="./assets/hero-voyance.png" alt="Cristaux de quartz rose, lavande séchée et cartes oracle sur un tissu en lin" width="1456" height="816" loading="eager">
+        <img src="héros-voyance.png" alt="Cristaux de quartz rose, lavande séchée et cartes oracle sur un tissu en lin" width="1456" height="816" loading="eager">
       </div>
       <div class="container hero__content">
         <p class="hero__tagline">Voyance & Oracles</p>
         <h1 class="hero__title">Éclairez votre chemin intérieur</h1>
-        <p class="hero__desc">Consultations de voyance personnalisées avec l'Oracle Belline et l'Oracle de la Triade. Une guidance authentique, bienveillante et ancrée dans le respect de votre libre arbitre.</p>
+        <p class="hero__desc">Consultations de voyance personnalisées. Une guidance authentique, bienveillante et ancrée dans le respect de votre libre arbitre.</p>
         <div class="hero__cta">
           <a href="#services" class="btn btn--primary" data-nav="services">Réserver une consultation</a>
           <a href="#therapie" class="btn btn--outline" data-nav="therapie">Découvrir les thérapies</a>
