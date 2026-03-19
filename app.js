@@ -251,7 +251,37 @@
         '<h2>Un avertissement important</h2>' +
         '<p>Il est essentiel de rappeler que la Bio-Logique des \u00c9motions n\u2019est pas reconnue comme discipline th\u00e9rapeutique par les autorit\u00e9s sanitaires. Elle ne se substitue en aucun cas \u00e0 un diagnostic ou un traitement m\u00e9dical. C\u2019est un <strong>compl\u00e9ment</strong>, un \u00e9clairage suppl\u00e9mentaire pour celles et ceux qui souhaitent explorer la dimension \u00e9motionnelle de leur parcours de sant\u00e9.</p>' +
         '<div class="blog-article__cta"><p>Ce sujet vous parle\u202f? N\u2019h\u00e9sitez pas \u00e0 m\u2019\u00e9crire pour en discuter.</p></div>'
-    }
+    },
+    'astrologie-lumiere-interieur': {
+      category: 'Astrologie',
+      title: 'Astrologie : une boussole pour éclairer votre chemin intérieur',
+      date: '28 mars 2026',
+      content:
+        '<h1>Astrologie : une boussole pour éclairer votre chemin intérieur</h1>' +
+        '<p>Sur <strong>Lumière</strong> Intérieur, l’astrologie est envisagée comme un art sacré de connaissance de soi, complémentaire à la voyance, à la cartomancie et aux tirages de tarot. Loin d’annoncer un destin figé, elle offre un regard symbolique sur vos cycles de vie, vos forces, vos défis et les invitations que l’Univers vous adresse à chaque instant.</p>' +
+        '<h2>Qu’est-ce que l’astrologie&nbsp;?</h2>' +
+        '<p>L’astrologie observe la position des planètes, du Soleil et de la Lune au moment de votre naissance pour dresser une «&nbsp;carte du ciel&nbsp;» appelée thème natal. Cette carte fonctionne comme un miroir symbolique de votre personnalité, de vos besoins émotionnels et de votre manière d’avancer dans la vie.</p>' +
+        '<h2>Le thème natal : votre carte du ciel</h2>' +
+        '<p>Votre thème natal est calculé à partir de votre date, heure et lieu de naissance. Il montre où se trouvaient les planètes dans le zodiaque et dans les douze maisons, qui représentent les grands domaines de l’existence : soi, famille, amour, travail, vocation, vie spirituelle, etc.</p>' +
+        '<h2>Les « Big Three » : Soleil, Lune, Ascendant</h2>' +
+        '<ul>' +
+        '<li><strong>Le Soleil</strong> parle de votre identité profonde, de ce qui vous fait vous sentir vivant et de votre chemin de réalisation.</li>' +
+        '<li><strong>La Lune</strong> reflète votre monde intérieur : émotions, besoins affectifs, manière d’être rassuré et de prendre soin de vous.</li>' +
+        '<li><strong>L’Ascendant</strong> montre la façon dont vous vous présentez au monde et la manière dont vous démarrez les nouveaux cycles.</li>' +
+        '</ul>' +
+        '<h2>Astrologie, voyance et cartomancie</h2>' +
+        '<p>Sur <strong>Lumière</strong> Intérieur, l’astrologie se marie naturellement avec la voyance, le tarot et la cartomancie. La voyance capte le potentiel d’une situation, tandis que l’astrologie donne le contexte énergétique dans lequel ces mouvements se déploient.</p>' +
+        '<h2>À quoi sert une consultation astrologique ?</h2>' +
+        '<ul>' +
+        '<li>Mettre des mots sur votre sensibilité et vos besoins profonds.</li>' +
+        '<li>Comprendre pourquoi certains schémas se répètent dans votre vie et comment les traverser autrement.</li>' +
+        '<li>Identifier vos ressources intérieures et les domaines où vous pouvez rayonner avec plus de confiance.</li>' +
+        '<li>Choisir des périodes plus favorables pour lancer un projet ou amorcer un changement important.</li>' +
+        '</ul>' +
+        '<h2>Ouvrir un espace de guidance</h2>' +
+        '<p>Chaque rencontre astrologique est un espace de guidance, de douceur et d’écoute. L’objectif n’est pas de vous enfermer dans un signe, mais d’ouvrir des portes et de vous aider à vous aligner davantage avec votre chemin intérieur.</p>' +
+        '<p>Si vous ressentez l’appel de mieux comprendre votre thème natal ou de combiner astrologie et tirages de cartes, vous pouvez réserver une consultation sur <strong>Lumière</strong> Intérieur.</p>'
+      }
   };
 
   // --- Blog Overlay Logic ---
