@@ -530,4 +530,69 @@
     }
   });
 
+  // --- Newsletter Forms ---
+  function getSubscribers() {
+    try { return JSON.parse(localStorage.getItem('newsletter_subscribers')) || []; }
+    catch(e) { return []; }
+  }
+  function saveSubscriber(data) {
+    var subs = getSubscribers();
+    // Avoid duplicates by email
+    var exists = subs.some(function(s) { return s.email === data.email; });
+    if (!exists) {
+      subs.push(data);
+      try { localStorage.setItem('newsletter_subscribers', JSON.stringify(subs)); } catch(e) {}
+    }
+    return !exists;
+  }
+
+  document.querySelectorAll('[data-newsletter]').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var prenomInput = form.querySelector('input[name="prenom"]');
+      var emailInput = form.querySelector('input[name="email"]');
+      var prenom = prenomInput.value.trim();
+      var email = emailInput.value.trim();
+
+      if (!prenom || !email) return;
+
+      // Save locally
+      var isNew = saveSubscriber({
+        prenom: prenom,
+        email: email,
+        date: new Date().toISOString()
+      });
+
+      // Send notification email
+      if (isNew) {
+        var subject = encodeURIComponent('Nouvelle inscription newsletter — Lumi\u00e8re Int\u00e9rieure');
+        var body = encodeURIComponent(
+          'Nouvelle inscription \u00e0 la newsletter :\n\n' +
+          'Pr\u00e9nom : ' + prenom + '\n' +
+          'Email : ' + email + '\n' +
+          'Date : ' + new Date().toLocaleDateString('fr-FR') + '\n\n' +
+          '\u2014 Notification automatique depuis lumiere-interieur.com'
+        );
+        // Open mail client silently via hidden iframe
+        var mailLink = document.createElement('a');
+        mailLink.href = 'mailto:philippe.medium45@gmail.com?subject=' + subject + '&body=' + body;
+        mailLink.style.display = 'none';
+        document.body.appendChild(mailLink);
+        mailLink.click();
+        document.body.removeChild(mailLink);
+      }
+
+      // Show success message
+      var successEl = form.parentElement.querySelector('.newsletter-success');
+      if (successEl) {
+        form.hidden = true;
+        successEl.hidden = false;
+      } else {
+        // Fallback: replace form content
+        form.innerHTML = '<p style="color:var(--color-primary);font-weight:500;text-align:center;">Merci ' + prenom + ', inscription enregistr\u00e9e !</p>';
+      }
+    });
+  });
+
 })();

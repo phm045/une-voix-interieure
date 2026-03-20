@@ -565,8 +565,25 @@
           </div>
           <h2 class="boutique-coming__title fade-in">Bientôt disponible</h2>
           <p class="boutique-coming__text fade-in">La boutique est en cours de préparation. Vous y trouverez prochainement des cristaux sélectionnés, des encens naturels, des supports de méditation et d'autres ressources pour enrichir votre pratique spirituelle.</p>
-          <p class="boutique-coming__text fade-in">En attendant, n'hésitez pas à me contacter pour toute demande particulière.</p>
-          <a href="#contact" class="btn btn--primary" data-nav="contact">Me contacter</a>
+          <p class="boutique-coming__text fade-in">En attendant, inscrivez-vous à la newsletter pour être prévenu dès l'ouverture et recevoir des offres exclusives.</p>
+
+          <div class="newsletter-inline fade-in">
+            <form class="newsletter-form" data-newsletter>
+              <div class="newsletter-form__fields">
+                <input type="text" name="prenom" placeholder="Votre prénom" required class="newsletter-form__input" maxlength="40">
+                <input type="email" name="email" placeholder="Votre adresse email" required class="newsletter-form__input newsletter-form__input--email">
+              </div>
+              <button type="submit" class="btn btn--primary newsletter-form__btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                S'inscrire à la newsletter
+              </button>
+              <p class="newsletter-form__note">Pas de spam. Uniquement des nouveautés boutique et des offres spéciales.</p>
+            </form>
+            <div class="newsletter-success" hidden>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <p>Merci pour votre inscription. Vous recevrez nos prochaines actualités.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -960,6 +977,40 @@
   </div>
 
 </main>
+
+<!-- ========================================
+     NEWSLETTER BANNER
+     ======================================== -->
+<section class="newsletter-banner">
+  <div class="container">
+    <div class="newsletter-banner__inner">
+      <div class="newsletter-banner__content">
+        <div class="newsletter-banner__icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <h2 class="newsletter-banner__title">Restez informé</h2>
+          <p class="newsletter-banner__desc">Recevez les nouveautés boutique, les offres spéciales et les actualités de Lumière Intérieure directement dans votre boîte mail.</p>
+        </div>
+      </div>
+      <form class="newsletter-form newsletter-form--banner" data-newsletter>
+        <div class="newsletter-form__row">
+          <input type="text" name="prenom" placeholder="Prénom" required class="newsletter-form__input" maxlength="40">
+          <input type="email" name="email" placeholder="Adresse email" required class="newsletter-form__input newsletter-form__input--email">
+          <button type="submit" class="btn btn--primary newsletter-form__btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            S'inscrire
+          </button>
+        </div>
+        <p class="newsletter-form__note">Gratuit · Sans spam · Désinscription en un clic</p>
+      </form>
+      <div class="newsletter-success" hidden>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>Inscription enregistrée. À très bientôt dans votre boîte mail.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ========================================
      FOOTER
