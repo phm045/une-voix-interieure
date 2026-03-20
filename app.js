@@ -326,6 +326,68 @@
   var closeBtn = overlay ? overlay.querySelector('.blog-overlay__close') : null;
   var backdrop = overlay ? overlay.querySelector('.blog-overlay__backdrop') : null;
 
+  // --- Likes & Comments helpers (localStorage) ---
+  function getLikes(articleId) {
+    try { return JSON.parse(localStorage.getItem('blog_likes_' + articleId)) || { count: 0, liked: false }; }
+    catch(e) { return { count: 0, liked: false }; }
+  }
+  function saveLikes(articleId, data) {
+    try { localStorage.setItem('blog_likes_' + articleId, JSON.stringify(data)); } catch(e) {}
+  }
+  function getComments(articleId) {
+    try { return JSON.parse(localStorage.getItem('blog_comments_' + articleId)) || []; }
+    catch(e) { return []; }
+  }
+  function saveComments(articleId, comments) {
+    try { localStorage.setItem('blog_comments_' + articleId, JSON.stringify(comments)); } catch(e) {}
+  }
+  function formatDate(d) {
+    var day = d.getDate();
+    var months = ['janv.','f\u00e9vr.','mars','avr.','mai','juin','juil.','ao\u00fbt','sept.','oct.','nov.','d\u00e9c.'];
+    return day + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  function renderComments(articleId, listEl) {
+    var comments = getComments(articleId);
+    if (comments.length === 0) {
+      listEl.innerHTML = '<p class="blog-comments__empty">Soyez le premier \u00e0 laisser un commentaire.</p>';
+    } else {
+      listEl.innerHTML = comments.map(function(c) {
+        return '<div class="blog-comment">' +
+          '<div class="blog-comment__header">' +
+            '<span class="blog-comment__name">' + c.name + '</span>' +
+            '<span class="blog-comment__date">' + c.date + '</span>' +
+          '</div>' +
+          '<p class="blog-comment__text">' + c.text + '</p>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  function buildInteractionsHTML(articleId) {
+    var likes = getLikes(articleId);
+    var likedClass = likes.liked ? ' liked' : '';
+    var heartFill = likes.liked ? 'var(--color-terracotta)' : 'none';
+    return '<div class="blog-interactions">' +
+      '<div class="blog-like">' +
+        '<button class="blog-like__btn' + likedClass + '" data-like-article="' + articleId + '">' +
+          '<svg class="like-anim" viewBox="0 0 24 24" fill="' + heartFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' +
+          '</svg>' +
+          '<span class="like-count">' + likes.count + '</span>' +
+        '</button>' +
+      '</div>' +
+      '<div class="blog-comments">' +
+        '<h3 class="blog-comments__title">Commentaires</h3>' +
+        '<div class="blog-comments__form">' +
+          '<input type="text" class="blog-comments__input" id="comment-name" placeholder="Votre pr\u00e9nom" maxlength="40">' +
+          '<textarea class="blog-comments__input" id="comment-text" placeholder="Votre commentaire\u2026" maxlength="500"></textarea>' +
+          '<button class="blog-comments__submit" data-comment-article="' + articleId + '">Publier</button>' +
+        '</div>' +
+        '<div class="blog-comments__list" id="comments-list-' + articleId + '"></div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function openBlogArticle(articleId) {
     var article = blogArticles[articleId];
     if (!article || !overlay || !articleBody) return;
@@ -334,7 +396,55 @@
       '<p class="blog-article__category">' + article.category + '</p>' +
       '<h1 class="blog-article__title">' + article.title + '</h1>' +
       '<p class="blog-article__meta">' + article.date + '</p>' +
-      article.content;
+      article.content +
+      buildInteractionsHTML(articleId);
+
+    // Render existing comments
+    var listEl = document.getElementById('comments-list-' + articleId);
+    if (listEl) renderComments(articleId, listEl);
+
+    // Like button handler
+    var likeBtn = articleBody.querySelector('[data-like-article="' + articleId + '"]');
+    if (likeBtn) {
+      likeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var data = getLikes(articleId);
+        if (data.liked) {
+          data.count = Math.max(0, data.count - 1);
+          data.liked = false;
+        } else {
+          data.count += 1;
+          data.liked = true;
+        }
+        saveLikes(articleId, data);
+        this.classList.toggle('liked');
+        var svg = this.querySelector('svg');
+        svg.setAttribute('fill', data.liked ? 'var(--color-terracotta)' : 'none');
+        svg.classList.remove('like-anim');
+        void svg.offsetWidth;
+        svg.classList.add('like-anim');
+        this.querySelector('.like-count').textContent = data.count;
+      });
+    }
+
+    // Comment submit handler
+    var submitBtn = articleBody.querySelector('[data-comment-article="' + articleId + '"]');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var nameInput = document.getElementById('comment-name');
+        var textInput = document.getElementById('comment-text');
+        var name = nameInput.value.trim();
+        var text = textInput.value.trim();
+        if (!name || !text) return;
+        var comments = getComments(articleId);
+        comments.unshift({ name: name, text: text, date: formatDate(new Date()) });
+        saveComments(articleId, comments);
+        nameInput.value = '';
+        textInput.value = '';
+        if (listEl) renderComments(articleId, listEl);
+      });
+    }
 
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
