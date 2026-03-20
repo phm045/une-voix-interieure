@@ -206,9 +206,9 @@
 }
 
 .header__logo-img {
-  height: 40px;
+  height: 64px;
   width: auto;
-  max-width: 200px;
+  max-width: 280px;
   display: block;
   object-fit: contain;
 }
