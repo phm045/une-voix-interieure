@@ -703,15 +703,22 @@
   // AUTHENTIFICATION — Supabase Auth
   // ========================================
 
-  var SUPABASE_URL = 'https://dhbbwzpfwtdtdiuixrmq.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoYmJ3enBmd3RkdGRpdWl4cm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjQ4MjQsImV4cCI6MjA4OTY3MjgxNH0.ysMB2mgIV83NjTI_63WNlkHVul20zu34us-W-wzdyfg';
-  var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Les identifiants Supabase sont définis dans config.js
+  if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined' ||
+      !SUPABASE_URL || !SUPABASE_ANON_KEY ||
+      SUPABASE_URL === 'VOTRE_SUPABASE_URL' || SUPABASE_ANON_KEY === 'VOTRE_SUPABASE_ANON_KEY') {
+    console.error('Lumière Intérieure : les identifiants Supabase ne sont pas configurés. Veuillez mettre à jour config.js avec vos identifiants Supabase.');
+  }
+  var supabase = (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL && SUPABASE_URL !== 'VOTRE_SUPABASE_URL' && window.supabase)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
   var navConnexion = document.getElementById('nav-connexion');
   var navCompte = document.getElementById('nav-compte');
 
   // --- Vérifier l'état de connexion au chargement ---
   async function verifierStatutAuth() {
+    if (!supabase) { afficherEtatDeconnecte(); return; }
     try {
       var { data: { session } } = await supabase.auth.getSession();
       if (session && session.user) {
@@ -726,14 +733,16 @@
   }
 
   // Écouter les changements d'état d'auth
-  supabase.auth.onAuthStateChange(function (event, session) {
-    if (session && session.user) {
-      var meta = session.user.user_metadata || {};
-      afficherEtatConnecte({ prenom: meta.prenom || '', nom: meta.nom || '', email: session.user.email });
-    } else {
-      afficherEtatDeconnecte();
-    }
-  });
+  if (supabase) {
+    supabase.auth.onAuthStateChange(function (event, session) {
+      if (session && session.user) {
+        var meta = session.user.user_metadata || {};
+        afficherEtatConnecte({ prenom: meta.prenom || '', nom: meta.nom || '', email: session.user.email });
+      } else {
+        afficherEtatDeconnecte();
+      }
+    });
+  }
 
   function afficherEtatConnecte(client) {
     if (navConnexion) navConnexion.hidden = true;
@@ -808,6 +817,13 @@
         return;
       }
 
+      if (!supabase) {
+        afficherMessage('insc-message', 'Le service d\'authentification n\'est pas configuré. Veuillez contacter l\'administrateur.', 'erreur');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Créer mon compte';
+        return;
+      }
+
       try {
         var { data, error } = await supabase.auth.signUp({
           email: email,
@@ -823,7 +839,8 @@
 
         if (error) {
           var msg = error.message;
-          if (msg.includes('already registered')) msg = 'Un compte existe déjà avec cette adresse email.';
+          if (msg.includes('Invalid API key')) msg = 'Le service d\'authentification est temporairement indisponible. Veuillez réessayer plus tard.';
+          else if (msg.includes('already registered')) msg = 'Un compte existe déjà avec cette adresse email.';
           afficherMessage('insc-message', msg, 'erreur');
         } else {
           afficherMessage('insc-message', 'Inscription réussie ! Bienvenue, ' + prenom + '.', 'succes');
@@ -857,6 +874,13 @@
       var email = document.getElementById('conn-email').value.trim();
       var motDePasse = document.getElementById('conn-mdp').value;
 
+      if (!supabase) {
+        afficherMessage('conn-message', 'Le service d\'authentification n\'est pas configuré. Veuillez contacter l\'administrateur.', 'erreur');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Se connecter';
+        return;
+      }
+
       try {
         var { data, error } = await supabase.auth.signInWithPassword({
           email: email,
@@ -865,7 +889,8 @@
 
         if (error) {
           var msg = error.message;
-          if (msg.includes('Invalid login')) msg = 'Email ou mot de passe incorrect.';
+          if (msg.includes('Invalid API key')) msg = 'Le service d\'authentification est temporairement indisponible. Veuillez réessayer plus tard.';
+          else if (msg.includes('Invalid login')) msg = 'Email ou mot de passe incorrect.';
           afficherMessage('conn-message', msg, 'erreur');
         } else {
           var meta = data.user.user_metadata || {};
@@ -889,6 +914,7 @@
 
   // --- Charger le profil sur la page Mon compte ---
   async function chargerProfil() {
+    if (!supabase) return;
     try {
       var { data: { session } } = await supabase.auth.getSession();
       if (session && session.user) {
@@ -917,7 +943,7 @@
   var btnDeconnexion = document.getElementById('btn-deconnexion');
   if (btnDeconnexion) {
     btnDeconnexion.addEventListener('click', async function () {
-      await supabase.auth.signOut();
+      if (supabase) await supabase.auth.signOut();
       afficherEtatDeconnecte();
       history.pushState(null, '', '#accueil');
       showPage('accueil');
