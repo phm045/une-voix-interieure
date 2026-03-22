@@ -379,7 +379,59 @@
         '<p>Comme toute approche divinatoire ou symbolique, la num\u00e9rologie n\u2019a pas vocation \u00e0 vous figer dans une \u00e9tiquette. Un Chemin de vie 4 n\u2019est pas \u00ab condamn\u00e9 \u00bb \u00e0 la routine, pas plus qu\u2019un Chemin de vie 5 n\u2019est incapable de stabilit\u00e9. Ces vibrations sont des <strong>tendances, des ressources, des invitations</strong> \u2014 jamais des sentences.</p>' +
         '<p>L\u2019objectif est de mieux vous conna\u00eetre, de comprendre vos forces et vos d\u00e9fis avec bienveillance, et de cheminer vers une vie plus align\u00e9e avec ce que vous \u00eates profond\u00e9ment.</p>' +
         '<div class="blog-article__cta"><p>Curieux(se) de d\u00e9couvrir votre Chemin de vie ou votre num\u00e9roth\u00e8me complet ? Parlons-en lors de votre prochaine consultation.</p></div>'
-}
+},
+    'vampires-energetiques': {
+      category: 'Protection \u00e9nerg\u00e9tique',
+      title: 'Vampires \u00e9nerg\u00e9tiques\u00a0: reconna\u00eetre les personnes toxiques et s\u2019en prot\u00e9ger',
+      date: '22 mars 2026',
+      content: '<h2>Qu\u2019est-ce qu\u2019un vampire \u00e9nerg\u00e9tique\u202f?</h2>' +
+        '<p>Vous est-il d\u00e9j\u00e0 arriv\u00e9 de quitter une conversation en vous sentant vid\u00e9(e), \u00e9puis\u00e9(e) ou inexplicablement triste, alors que tout allait bien avant\u202f? Ce ph\u00e9nom\u00e8ne, beaucoup d\u2019entre nous le connaissent sans savoir le nommer. En \u00e9nerg\u00e9tique, on parle de <strong>vampires \u00e9nerg\u00e9tiques</strong>\u00a0: des personnes qui, consciemment ou non, se nourrissent de l\u2019\u00e9nergie vitale de leur entourage.</p>' +
+        '<p>Il ne s\u2019agit pas de diaboliser qui que ce soit. Un vampire \u00e9nerg\u00e9tique n\u2019est pas forc\u00e9ment une mauvaise personne. C\u2019est souvent quelqu\u2019un en souffrance, en manque, dont le vide int\u00e9rieur aspire l\u2019\u00e9nergie autour de lui comme une \u00e9ponge. Mais comprendre ce m\u00e9canisme est essentiel pour <strong>pr\u00e9server votre \u00e9quilibre</strong>.</p>' +
+        '<h2>Les profils les plus courants</h2>' +
+        '<p>Les vampires \u00e9nerg\u00e9tiques prennent des formes tr\u00e8s diff\u00e9rentes. Savoir les reconna\u00eetre, c\u2019est d\u00e9j\u00e0 se prot\u00e9ger\u00a0:</p>' +
+        '<ul>' +
+        '<li><strong>Le plaignant chronique</strong> \u2014 Tout va toujours mal. Il sollicite votre \u00e9coute en permanence, mais ne cherche jamais de solution. Apr\u00e8s l\u2019\u00e9change, c\u2019est vous qui portez le poids de ses probl\u00e8mes.</li>' +
+        '<li><strong>Le manipulateur</strong> \u2014 Subtil, charmant, il utilise la culpabilit\u00e9, le chantage \u00e9motionnel ou la flatterie pour obtenir ce qu\u2019il veut. Vous vous sentez confus(e) apr\u00e8s vos \u00e9changes, sans vraiment comprendre pourquoi.</li>' +
+        '<li><strong>Le critique permanent</strong> \u2014 Rien n\u2019est jamais assez bien. Chaque d\u00e9cision, chaque r\u00e9ussite est minimis\u00e9e ou d\u00e9valoris\u00e9e. Il sape votre confiance en vous \u00e0 petit feu.</li>' +
+        '<li><strong>Le drame ambulant</strong> \u2014 Sa vie est un th\u00e9\u00e2tre permanent de crises et d\u2019urgences. Il vous entra\u00eene dans son chaos \u00e9motionnel et vous \u00eates toujours appel\u00e9(e) \u00e0 la rescousse.</li>' +
+        '<li><strong>Le dominateur</strong> \u2014 Il impose ses id\u00e9es, ses envies, son rythme. Tout tourne autour de lui. Votre propre \u00e9nergie est mise au service de ses besoins, jamais des v\u00f4tres.</li>' +
+        '</ul>' +
+        '<h2>Les signes que votre \u00e9nergie est pomp\u00e9e</h2>' +
+        '<p>Votre corps et vos \u00e9motions vous envoient des signaux clairs quand vous \u00eates en pr\u00e9sence d\u2019un vampire \u00e9nerg\u00e9tique. Apprenez \u00e0 les \u00e9couter\u00a0:</p>' +
+        '<ul>' +
+        '<li><strong>Fatigue soudaine</strong> apr\u00e8s un appel ou une rencontre, m\u00eame br\u00e8ve</li>' +
+        '<li>Sensation de <strong>vide</strong>, de lourdeur ou de brouillard mental</li>' +
+        '<li><strong>Irritabilit\u00e9</strong> ou tristesse inexplicable apr\u00e8s un \u00e9change</li>' +
+        '<li>Envie de <strong>fuir</strong> ou de vous isoler sans raison apparente</li>' +
+        '<li><strong>Maux de t\u00eate</strong>, tensions dans le plexus solaire ou la nuque</li>' +
+        '<li>Impression de perdre confiance en vous au fil du temps avec cette personne</li>' +
+        '</ul>' +
+        '<p>Si vous reconnaissez plusieurs de ces signes de mani\u00e8re r\u00e9currente avec la m\u00eame personne, il est probable que votre \u00e9nergie est aspir\u00e9e.</p>' +
+        '<h2>Pourquoi certaines personnes attirent les vampires \u00e9nerg\u00e9tiques\u202f?</h2>' +
+        '<p>Les personnes les plus touch\u00e9es sont souvent celles qui ont un <strong>c\u0153ur grand ouvert</strong>\u00a0: les empathes, les hypersensibles, les \u00ab donneurs naturels \u00bb. Leur lumi\u00e8re int\u00e9rieure attire comme un aimant ceux qui en manquent. C\u2019est une belle qualit\u00e9, mais elle doit s\u2019accompagner d\u2019une conscience claire de ses propres limites.</p>' +
+        '<p>Donner sans limite, c\u2019est se vider. La bienveillance envers les autres commence par la <strong>bienveillance envers soi-m\u00eame</strong>.</p>' +
+        '<h2>Comment se prot\u00e9ger\u00a0: 7 cl\u00e9s concr\u00e8tes</h2>' +
+        '<p><strong>1. Identifiez les personnes qui vous \u00e9puisent.</strong> Prenez le temps d\u2019observer comment vous vous sentez apr\u00e8s chaque interaction. Notez-le dans un carnet si n\u00e9cessaire. La prise de conscience est la premi\u00e8re \u00e9tape.</p>' +
+        '<p><strong>2. Posez des limites claires.</strong> Dire \u00ab non \u00bb n\u2019est pas un manque d\u2019amour. C\u2019est un acte de respect envers vous-m\u00eame. Limitez le temps pass\u00e9 avec les personnes toxiques. Vous n\u2019\u00eates pas oblig\u00e9(e) de r\u00e9pondre \u00e0 chaque appel, chaque message, chaque sollicitation.</p>' +
+        '<p><strong>3. Pratiquez la visualisation de protection.</strong> Avant une rencontre difficile, visualisez une bulle de lumi\u00e8re dor\u00e9e qui vous enveloppe. Cette technique simple mais puissante renforce votre champ \u00e9nerg\u00e9tique et cr\u00e9e une barri\u00e8re symbolique qui prot\u00e8ge votre espace int\u00e9rieur.</p>' +
+        '<p><strong>4. Ancrez-vous au quotidien.</strong> La marche en nature, le contact pieds nus avec la terre, la respiration consciente\u2026 Toutes ces pratiques renforcent votre ancrage et vous rendent moins vuln\u00e9rable aux influences ext\u00e9rieures. Un arbre profond\u00e9ment enracin\u00e9 ne plie pas au premier coup de vent.</p>' +
+        '<p><strong>5. Utilisez les pierres de protection.</strong> La <strong>tourmaline noire</strong> est la pierre de protection par excellence\u00a0: elle absorbe les \u00e9nergies n\u00e9gatives. L\u2019<strong>\u0153il-de-tigre</strong> renvoie les mauvaises intentions comme un miroir. La <strong>labradorite</strong> agit comme un bouclier \u00e9nerg\u00e9tique pour les th\u00e9rapeutes et les empathes.</p>' +
+        '<p><strong>6. Purifiez votre espace r\u00e9guli\u00e8rement.</strong> Br\u00fblez de la sauge, du palo santo ou de l\u2019encens apr\u00e8s la visite d\u2019une personne \u00e9puisante. A\u00e9rez votre int\u00e9rieur. Ces gestes simples nettoient les \u00e9nergies stagnantes et redonnent de la l\u00e9g\u00e8ret\u00e9 \u00e0 votre lieu de vie.</p>' +
+        '<p><strong>7. Si n\u00e9cessaire, prenez de la distance.</strong> Parfois, la seule v\u00e9ritable protection est l\u2019\u00e9loignement. Si une relation vous d\u00e9truit, vous avez le droit de vous en lib\u00e9rer. Ce n\u2019est pas de la l\u00e2chet\u00e9, c\u2019est de la <strong>survie \u00e9nerg\u00e9tique</strong>.</p>' +
+        '<h2>Et si le vampire \u00e9nerg\u00e9tique est un proche\u202f?</h2>' +
+        '<p>C\u2019est souvent la situation la plus douloureuse. Un parent, un conjoint, un ami d\u2019enfance\u2026 Il n\u2019est pas toujours possible de couper les ponts. Dans ce cas, le travail consiste \u00e0 <strong>renforcer vos propres d\u00e9fenses</strong> plut\u00f4t qu\u2019\u00e0 changer l\u2019autre.</p>' +
+        '<p>Apprenez \u00e0 \u00eatre pr\u00e9sent sans absorber. \u00c0 \u00e9couter sans porter. \u00c0 aimer sans vous perdre. C\u2019est un \u00e9quilibre subtil, qui demande de la pratique, mais qui transforme profond\u00e9ment la relation \u00e0 l\u2019autre et \u00e0 soi-m\u00eame.</p>' +
+        '<h2>La voyance comme outil de discernement</h2>' +
+        '<p>Les cartes peuvent r\u00e9v\u00e9ler des dynamiques relationnelles invisibles \u00e0 l\u2019\u0153il nu. Un tirage cibl\u00e9 permet d\u2019\u00e9clairer\u00a0:</p>' +
+        '<ul>' +
+        '<li>La nature \u00e9nerg\u00e9tique d\u2019une relation qui vous pr\u00e9occupe</li>' +
+        '<li>Les sch\u00e9mas inconscients qui vous rendent vuln\u00e9rable</li>' +
+        '<li>Les ressources dont vous disposez pour vous prot\u00e9ger</li>' +
+        '<li>Le chemin vers un \u00e9quilibre \u00e9nerg\u00e9tique retrouv\u00e9</li>' +
+        '</ul>' +
+        '<p>Prot\u00e9ger votre \u00e9nergie, ce n\u2019est pas devenir froid ou ferm\u00e9. C\u2019est apprendre \u00e0 <strong>briller sans se consumer</strong>. C\u2019est honorer votre lumi\u00e8re int\u00e9rieure en la prot\u00e9geant avec la m\u00eame attention que vous accordez \u00e0 celle des autres.</p>' +
+        '<div class="blog-article__cta"><p>Vous sentez que votre \u00e9nergie est aspir\u00e9e par une relation\u202f? Parlons-en lors d\u2019une consultation pour \u00e9clairer la situation et trouver des solutions.</p></div>'
+    }
   };
 
   // --- Blog Overlay Logic ---
