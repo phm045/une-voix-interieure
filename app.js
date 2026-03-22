@@ -924,12 +924,16 @@
     });
   }
 
-  // Charger le profil quand on navigue vers Mon compte
+  // Charger le profil et toutes les données quand on navigue vers Mon compte
   var origShowPage = showPage;
   showPage = function (pageId) {
     origShowPage(pageId);
     if (pageId === 'mon-compte') {
       chargerProfil();
+      chargerRDV();
+      chargerCommandes();
+      chargerPaiements();
+      chargerCoupons();
     }
   };
 
@@ -1243,12 +1247,23 @@
       var nom = encodeURIComponent((meta.prenom || '') + ' ' + (meta.nom || ''));
       document.querySelectorAll('a[href*="cal.eu/philippe-medium-amzdok"]').forEach(function (lien) {
         var url = lien.getAttribute('href');
-        if (url.indexOf('?') === -1) {
-          lien.setAttribute('href', url + '?email=' + email + '&name=' + nom);
+        if (url.indexOf('email=') === -1) {
+          var sep = url.indexOf('?') === -1 ? '?' : '&';
+          lien.setAttribute('href', url + sep + 'email=' + email + '&name=' + nom);
         }
       });
     } catch (e) {}
   }
+
+  // --- Stocker le service Cal.com avant navigation ---
+  document.querySelectorAll('a[data-cal-service]').forEach(function (lien) {
+    lien.addEventListener('click', function () {
+      var service = this.getAttribute('data-cal-service');
+      if (service) {
+        sessionStorage.setItem('cal_service_pending', service);
+      }
+    });
+  });
 
   // --- V\u00e9rifier retour Cal.com apr\u00e8s r\u00e9servation ---
   async function verifierRetourCal() {
@@ -1257,6 +1272,12 @@
     var calService = params.get('cal_service');
     var calDate = params.get('cal_date');
     if (!calBooking) return;
+
+    // R\u00e9cup\u00e9rer le nom du service depuis sessionStorage si Cal.com ne le renvoie pas
+    if (!calService) {
+      calService = sessionStorage.getItem('cal_service_pending') || 'Consultation';
+    }
+    sessionStorage.removeItem('cal_service_pending');
 
     history.replaceState(null, '', window.location.pathname + '#mon-compte');
 
@@ -1273,7 +1294,7 @@
 
       await supabase.from('reservations').insert({
         user_id: session.user.id,
-        service: decodeURIComponent(calService || 'Consultation'),
+        service: decodeURIComponent(calService),
         date_rdv: calDate || new Date().toISOString(),
         statut: '\u00e0 venir',
         notes: 'cal:' + calBooking
