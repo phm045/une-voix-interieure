@@ -936,6 +936,262 @@
   // Vérifier le statut auth au chargement
   verifierStatutAuth();
 
+  // ========================================
+  // COMMANDES / PAIEMENTS / COUPONS — Supabase
+  // ========================================
+
+  // Map des liens Stripe vers les noms de services
+  var STRIPE_SERVICES = {
+    'aFaaEP1PSgzRh2U7IP8so02': { service: 'Focus Intuitif', montant: 40 },
+    'fZu5kv7ac3N5h2Ufbh8so03': { service: 'R\u00e9v\u00e9lations Intuitives', montant: 55 },
+    'fZu00bfGIgzRh2U0gn8so04': { service: 'Panorama Intuitif', montant: 75 },
+    '00wbITdyAabtdQI8MT8so05': { service: 'Voyance par mail — 1 question', montant: 9 }
+  };
+
+  // --- V\u00e9rifier si retour de Stripe (success) ---
+  async function verifierRetourStripe() {
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get('session_id');
+    var serviceKey = params.get('service');
+    if (!sessionId || !serviceKey) return;
+
+    // Nettoyer l'URL
+    history.replaceState(null, '', window.location.pathname + '#mon-compte');
+
+    try {
+      var { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      var infos = STRIPE_SERVICES[serviceKey];
+      if (!infos) return;
+
+      // V\u00e9rifier que cette session n'a pas d\u00e9j\u00e0 \u00e9t\u00e9 enregistr\u00e9e
+      var { data: existe } = await supabase
+        .from('commandes')
+        .select('id')
+        .eq('stripe_session_id', sessionId)
+        .maybeSingle();
+
+      if (existe) return; // D\u00e9j\u00e0 enregistr\u00e9e
+
+      // Enregistrer la commande
+      await supabase.from('commandes').insert({
+        user_id: session.user.id,
+        service: infos.service,
+        montant: infos.montant,
+        methode_paiement: 'stripe',
+        statut: 'pay\u00e9',
+        stripe_session_id: sessionId
+      });
+
+      // Naviguer vers Mon compte > Commandes
+      showPage('mon-compte');
+      setTimeout(function () {
+        var btnCommandes = document.querySelector('[data-tab="commandes"]');
+        if (btnCommandes) btnCommandes.click();
+      }, 500);
+    } catch (e) {
+      console.error('Erreur retour Stripe:', e);
+    }
+  }
+
+  // --- Charger les commandes ---
+  async function chargerCommandes() {
+    var liste = document.getElementById('commandes-liste');
+    var vide = document.getElementById('commandes-vide');
+    if (!liste || !vide) return;
+
+    try {
+      var { data, error } = await supabase
+        .from('commandes')
+        .select('*')
+        .order('date_creation', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        liste.innerHTML = '';
+        vide.style.display = '';
+        return;
+      }
+
+      vide.style.display = 'none';
+      liste.innerHTML = '<div class="compte-liste">' + data.map(function (c) {
+        var date = new Date(c.date_creation).toLocaleDateString('fr-FR', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+        return '<div class="compte-liste__item">' +
+          '<div class="compte-liste__info">' +
+            '<span class="compte-liste__service">' + c.service + '</span>' +
+            '<span class="compte-liste__date">' + date + ' — ' + c.methode_paiement + '</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:0.75rem">' +
+            '<span class="compte-liste__statut compte-liste__statut--paye">Pay\u00e9</span>' +
+            '<span class="compte-liste__montant">' + Number(c.montant).toFixed(2) + ' \u20ac</span>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    } catch (e) {}
+  }
+
+  // --- Charger les paiements (m\u00eame donn\u00e9es, vue diff\u00e9rente) ---
+  async function chargerPaiements() {
+    var liste = document.getElementById('paiements-liste');
+    var vide = document.getElementById('paiements-vide');
+    if (!liste || !vide) return;
+
+    try {
+      var { data, error } = await supabase
+        .from('commandes')
+        .select('*')
+        .order('date_creation', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        liste.innerHTML = '';
+        vide.style.display = '';
+        return;
+      }
+
+      vide.style.display = 'none';
+      var total = data.reduce(function (s, c) { return s + Number(c.montant); }, 0);
+      liste.innerHTML = '<div class="compte-liste">' + data.map(function (c) {
+        var date = new Date(c.date_creation).toLocaleDateString('fr-FR', {
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+        var methode = c.methode_paiement === 'stripe' ? 'Carte bancaire' : 'PayPal';
+        return '<div class="compte-liste__item">' +
+          '<div class="compte-liste__info">' +
+            '<span class="compte-liste__service">' + methode + '</span>' +
+            '<span class="compte-liste__date">' + date + ' — ' + c.service + '</span>' +
+          '</div>' +
+          '<span class="compte-liste__montant">' + Number(c.montant).toFixed(2) + ' \u20ac</span>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div class="compte-liste__item" style="margin-top:0.5rem;border-color:var(--color-primary)">' +
+        '<span class="compte-liste__service">Total</span>' +
+        '<span class="compte-liste__montant">' + total.toFixed(2) + ' \u20ac</span>' +
+      '</div>';
+    } catch (e) {}
+  }
+
+  // --- Charger les coupons ---
+  async function chargerCoupons() {
+    var liste = document.getElementById('coupons-liste');
+    var vide = document.getElementById('coupons-vide');
+    if (!liste || !vide) return;
+
+    try {
+      var { data, error } = await supabase
+        .from('coupons_utilises')
+        .select('*, coupons(*)')
+        .order('date_utilisation', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        liste.innerHTML = '';
+        vide.style.display = '';
+        return;
+      }
+
+      vide.style.display = 'none';
+      liste.innerHTML = '<div class="compte-liste">' + data.map(function (cu) {
+        var c = cu.coupons;
+        if (!c) return '';
+        var date = new Date(cu.date_utilisation).toLocaleDateString('fr-FR', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+        var reduction = c.reduction_pourcent
+          ? '-' + c.reduction_pourcent + '%'
+          : '-' + Number(c.reduction_montant).toFixed(2) + ' \u20ac';
+        return '<div class="compte-liste__item">' +
+          '<div class="compte-liste__info">' +
+            '<span class="compte-liste__coupon-code">' + c.code + '</span>' +
+            '<span class="compte-liste__coupon-desc">' + c.description + '</span>' +
+            '<span class="compte-liste__date">Utilis\u00e9 le ' + date + '</span>' +
+          '</div>' +
+          '<span class="compte-liste__statut compte-liste__statut--actif">' + reduction + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+    } catch (e) {}
+  }
+
+  // --- Appliquer un coupon ---
+  var btnCoupon = document.getElementById('btn-appliquer-coupon');
+  if (btnCoupon) {
+    btnCoupon.addEventListener('click', async function () {
+      var input = document.getElementById('coupon-input');
+      var code = input.value.trim().toUpperCase();
+      if (!code) return;
+
+      cacherMessage('coupon-message');
+      btnCoupon.disabled = true;
+      btnCoupon.textContent = 'V\u00e9rification\u2026';
+
+      try {
+        var { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          afficherMessage('coupon-message', 'Vous devez \u00eatre connect\u00e9.', 'erreur');
+          btnCoupon.disabled = false;
+          btnCoupon.textContent = 'Appliquer';
+          return;
+        }
+
+        // V\u00e9rifier le coupon
+        var { data: coupon, error } = await supabase
+          .from('coupons')
+          .select('*')
+          .eq('code', code)
+          .eq('actif', true)
+          .maybeSingle();
+
+        if (!coupon) {
+          afficherMessage('coupon-message', 'Code coupon invalide ou expir\u00e9.', 'erreur');
+        } else if (coupon.valide_jusqu_au && new Date(coupon.valide_jusqu_au) < new Date()) {
+          afficherMessage('coupon-message', 'Ce coupon a expir\u00e9.', 'erreur');
+        } else if (coupon.usage_max && coupon.usage_actuel >= coupon.usage_max) {
+          afficherMessage('coupon-message', 'Ce coupon a atteint son nombre maximum d\u2019utilisations.', 'erreur');
+        } else {
+          // V\u00e9rifier si d\u00e9j\u00e0 utilis\u00e9 par ce client
+          var { data: dejaUtilise } = await supabase
+            .from('coupons_utilises')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('coupon_id', coupon.id)
+            .maybeSingle();
+
+          if (dejaUtilise) {
+            afficherMessage('coupon-message', 'Vous avez d\u00e9j\u00e0 utilis\u00e9 ce coupon.', 'erreur');
+          } else {
+            // Enregistrer l'utilisation
+            var { error: insertError } = await supabase
+              .from('coupons_utilises')
+              .insert({
+                user_id: session.user.id,
+                coupon_id: coupon.id
+              });
+
+            if (insertError) {
+              afficherMessage('coupon-message', 'Erreur lors de l\u2019application du coupon.', 'erreur');
+            } else {
+              var red = coupon.reduction_pourcent
+                ? '-' + coupon.reduction_pourcent + '%'
+                : '-' + Number(coupon.reduction_montant).toFixed(2) + ' \u20ac';
+              afficherMessage('coupon-message', 'Coupon appliqu\u00e9 ! ' + red + ' sur votre prochaine consultation.', 'succes');
+              input.value = '';
+              chargerCoupons();
+            }
+          }
+        }
+      } catch (err) {
+        afficherMessage('coupon-message', 'Erreur de connexion. Veuillez r\u00e9essayer.', 'erreur');
+      }
+
+      btnCoupon.disabled = false;
+      btnCoupon.textContent = 'Appliquer';
+    });
+  }
+
+  // V\u00e9rifier retour Stripe au chargement
+  verifierRetourStripe();
+
   // --- Onglets Mon Compte ---
   document.querySelectorAll('.compte-tabs__btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -953,6 +1209,11 @@
       this.classList.add('compte-tabs__btn--active');
       var target = document.getElementById('tab-' + tabId);
       if (target) target.classList.add('compte-tab-content--active');
+
+      // Charger les données de l'onglet
+      if (tabId === 'commandes') chargerCommandes();
+      if (tabId === 'paiements') chargerPaiements();
+      if (tabId === 'coupons') chargerCoupons();
     });
   });
 

@@ -1150,6 +1150,10 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
               Mes paiements
             </button>
+            <button class="compte-tabs__btn" data-tab="coupons">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 8h20v4H2z"/><path d="M12 2v6"/><path d="M12 2a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3z"/></svg>
+              Coupons
+            </button>
           </div>
 
           <!-- Tab : Mon profil -->
@@ -1180,7 +1184,8 @@
 
           <!-- Tab : Mes commandes -->
           <div class="compte-tab-content" id="tab-commandes">
-            <div class="compte-empty">
+            <div id="commandes-liste"></div>
+            <div class="compte-empty" id="commandes-vide">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="compte-empty__icon"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
               <p class="compte-empty__title">Aucune commande pour le moment</p>
               <p class="compte-empty__desc">Vos consultations et achats apparaîtront ici une fois effectués.</p>
@@ -1190,10 +1195,29 @@
 
           <!-- Tab : Mes paiements -->
           <div class="compte-tab-content" id="tab-paiements">
-            <div class="compte-empty">
+            <div id="paiements-liste"></div>
+            <div class="compte-empty" id="paiements-vide">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="compte-empty__icon"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
               <p class="compte-empty__title">Aucun paiement enregistré</p>
               <p class="compte-empty__desc">L’historique de vos paiements et reçus sera disponible ici.</p>
+            </div>
+          </div>
+
+          <!-- Tab : Coupons -->
+          <div class="compte-tab-content" id="tab-coupons">
+            <div class="coupon-saisie">
+              <p class="coupon-saisie__label">Entrez votre code coupon</p>
+              <div class="coupon-saisie__row">
+                <input type="text" id="coupon-input" class="auth-form__input" placeholder="Ex : BIENVENUE10" maxlength="30" autocomplete="off">
+                <button class="btn btn--primary" id="btn-appliquer-coupon">Appliquer</button>
+              </div>
+              <div class="auth-form__message" id="coupon-message" hidden></div>
+            </div>
+            <div id="coupons-liste"></div>
+            <div class="compte-empty" id="coupons-vide">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="compte-empty__icon"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 8h20v4H2z"/><path d="M12 2v6"/><path d="M12 2a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3z"/></svg>
+              <p class="compte-empty__title">Aucun coupon utilisé</p>
+              <p class="compte-empty__desc">Saisissez un code coupon ci-dessus pour bénéficier d’une réduction.</p>
             </div>
           </div>
 
