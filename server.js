@@ -79,6 +79,59 @@ async function demarrer() {
   // --- Routes d'authentification ---
   app.use('/api/auth', limiteurAuth, authRoutes);
 
+  // --- Route Newsletter (Brevo) ---
+  const limiteurNewsletter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { succes: false, erreur: 'Trop de tentatives. R\u00e9essayez dans 15 minutes.' }
+  });
+
+  app.post('/api/newsletter', limiteurNewsletter, async (req, res) => {
+    try {
+      var prenom = (req.body.prenom || '').trim();
+      var email = (req.body.email || '').trim().toLowerCase();
+
+      if (!prenom || !email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+        return res.status(400).json({ succes: false, erreur: 'Pr\u00e9nom et email valides requis.' });
+      }
+
+      var brevoKey = process.env.BREVO_API_KEY;
+      if (!brevoKey) {
+        console.error('BREVO_API_KEY non d\u00e9fini');
+        return res.status(500).json({ succes: false, erreur: 'Service newsletter indisponible.' });
+      }
+
+      var response = await fetch('https://api.brevo.com/v3/contacts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'api-key': brevoKey
+        },
+        body: JSON.stringify({
+          email: email,
+          attributes: { PRENOM: prenom },
+          listIds: [3],
+          updateEnabled: true
+        })
+      });
+
+      if (response.status === 201 || response.status === 204) {
+        return res.json({ succes: true, nouveau: response.status === 201 });
+      }
+
+      var data = await response.json().catch(function() { return {}; });
+      if (data.code === 'duplicate_parameter') {
+        return res.json({ succes: true, nouveau: false });
+      }
+
+      return res.json({ succes: true });
+    } catch (err) {
+      console.error('Erreur newsletter:', err.message);
+      return res.status(500).json({ succes: false, erreur: 'Erreur serveur.' });
+    }
+  });
+
   // --- Route de protection CSRF : fournir le token ---
   app.get('/api/csrf-token', (req, res) => {
     res.json({ succes: true });

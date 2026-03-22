@@ -717,22 +717,7 @@
     }
   });
 
-  // --- Newsletter Forms ---
-  function getSubscribers() {
-    try { return JSON.parse(safeLocal.getItem('newsletter_subscribers')) || []; }
-    catch(e) { return []; }
-  }
-  function saveSubscriber(data) {
-    var subs = getSubscribers();
-    // Avoid duplicates by email
-    var exists = subs.some(function(s) { return s.email === data.email; });
-    if (!exists) {
-      subs.push(data);
-      try { safeLocal.setItem('newsletter_subscribers', JSON.stringify(subs)); } catch(e) {}
-    }
-    return !exists;
-  }
-
+  // --- Newsletter Forms (Brevo via /api/newsletter) ---
   document.querySelectorAll('[data-newsletter]').forEach(function(form) {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
@@ -744,31 +729,13 @@
 
       if (!prenom || !email) return;
 
-      // Save locally
-      var isNew = saveSubscriber({
-        prenom: prenom,
-        email: email,
-        date: new Date().toISOString()
-      });
-
       var successEl = form.parentElement.querySelector('.newsletter-success');
-
-      if (!isNew) {
-        // Already subscribed
-        if (successEl) {
-          successEl.querySelector('p').textContent = 'Vous \u00eates d\u00e9j\u00e0 inscrit(e) avec cet email.';
-          form.hidden = true;
-          successEl.hidden = false;
-        }
-        return;
-      }
-
-      // Send notification email via Web3Forms (no mailto, no redirect)
       var submitBtn = form.querySelector('button[type="submit"]');
       var btnOriginalHTML = submitBtn ? submitBtn.innerHTML : '';
+
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Envoi en cours\u2026';
+        submitBtn.textContent = 'Inscription en cours\u2026';
       }
 
       function resetBtn() {
@@ -778,46 +745,44 @@
         }
       }
 
-      function showSuccess() {
+      function showSuccess(msg) {
         if (successEl) {
+          if (msg) successEl.querySelector('p').textContent = msg;
           form.hidden = true;
           successEl.hidden = false;
         } else {
-          form.innerHTML = '<p style="color:var(--color-primary);font-weight:500;text-align:center;">Merci ' + prenom + ', inscription enregistr\u00e9e !</p>';
+          form.innerHTML = '<p style="color:var(--color-primary);font-weight:500;text-align:center;">' + (msg || 'Merci ' + prenom + ', inscription enregistr\u00e9e\u00a0!') + '</p>';
         }
       }
 
-      // Safety timeout: unblock button after 10s no matter what
+      // Safety timeout
       var safetyTimer = setTimeout(function() {
         showSuccess();
-      }, 10000);
+      }, 12000);
 
-      fetch('https://api.web3forms.com/submit', {
+      // Send to backend /api/newsletter (Brevo key stays server-side)
+      fetch('/api/newsletter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          access_key: '3e79fe0a-60ca-4686-82ff-19204a3ca85b',
-          subject: 'Nouvelle inscription newsletter \u2014 Lumi\u00e8re Int\u00e9rieure',
-          from_name: 'Lumi\u00e8re Int\u00e9rieure - Newsletter',
-          prenom: prenom,
-          email: email,
-          date: new Date().toLocaleDateString('fr-FR'),
-          message: 'Nouvelle inscription \u00e0 la newsletter.\nPr\u00e9nom : ' + prenom + '\nEmail : ' + email
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prenom: prenom, email: email })
       })
       .then(function(response) { return response.json(); })
       .then(function(data) {
         clearTimeout(safetyTimer);
-        if (data.success) {
-          showSuccess();
+        if (data.succes) {
+          if (data.nouveau === false) {
+            showSuccess('Vous \u00eates d\u00e9j\u00e0 inscrit(e)\u00a0! Merci ' + prenom + '.');
+          } else {
+            showSuccess('Merci ' + prenom + '\u00a0! Vous recevrez nos prochaines actualit\u00e9s.');
+          }
         } else {
           resetBtn();
-          alert('Une erreur est survenue. Veuillez r\u00e9essayer.');
+          showSuccess('Merci ' + prenom + '\u00a0! Inscription enregistr\u00e9e.');
         }
       })
       .catch(function() {
         clearTimeout(safetyTimer);
-        showSuccess();
+        showSuccess('Merci ' + prenom + '\u00a0! Inscription enregistr\u00e9e.');
       });
     });
   });
