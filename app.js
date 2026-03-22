@@ -1303,18 +1303,30 @@
   });
 
   // --- V\u00e9rifier retour Cal.com apr\u00e8s r\u00e9servation ---
+  // Cal.com envoie : uid, title, startTime, endTime, email, attendeeName
   async function verifierRetourCal() {
     var params = new URLSearchParams(window.location.search);
-    var calBooking = params.get('cal_booking');
-    var calService = params.get('cal_service');
-    var calDate = params.get('cal_date');
-    if (!calBooking) return;
 
-    // R\u00e9cup\u00e9rer le nom du service depuis sessionStorage si Cal.com ne le renvoie pas
-    if (!calService) {
-      calService = sessionStorage.getItem('cal_service_pending') || 'Consultation';
-    }
+    // Lire les param\u00e8tres Cal.com (format officiel)
+    var calUid = params.get('uid');
+    var calTitle = params.get('title');
+    var calStart = params.get('startTime');
+
+    // Compatibilit\u00e9 avec les anciens param\u00e8tres
+    var calBookingLegacy = params.get('cal_booking');
+
+    var bookingId = calUid || calBookingLegacy;
+    if (!bookingId) return;
+
+    // R\u00e9cup\u00e9rer le nom du service depuis sessionStorage (stock\u00e9 au clic sur le bouton)
+    var serviceName = sessionStorage.getItem('cal_service_pending')
+      || params.get('cal_service')
+      || calTitle
+      || 'Consultation';
     sessionStorage.removeItem('cal_service_pending');
+
+    // Date du RDV
+    var dateRdv = calStart || params.get('cal_date') || new Date().toISOString();
 
     history.replaceState(null, '', window.location.pathname + '#mon-compte');
 
@@ -1322,19 +1334,20 @@
       var { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // V\u00e9rifier doublon
       var { data: existe } = await supabase
         .from('reservations')
         .select('id')
-        .eq('notes', 'cal:' + calBooking)
+        .eq('notes', 'cal:' + bookingId)
         .maybeSingle();
       if (existe) return;
 
       await supabase.from('reservations').insert({
         user_id: session.user.id,
-        service: decodeURIComponent(calService),
-        date_rdv: calDate || new Date().toISOString(),
+        service: decodeURIComponent(serviceName),
+        date_rdv: dateRdv,
         statut: '\u00e0 venir',
-        notes: 'cal:' + calBooking
+        notes: 'cal:' + bookingId
       });
 
       showPage('mon-compte');
@@ -1342,7 +1355,9 @@
         var btnRdv = document.querySelector('[data-tab="rdv"]');
         if (btnRdv) btnRdv.click();
       }, 500);
-    } catch (e) {}
+    } catch (e) {
+      console.error('Erreur retour Cal:', e);
+    }
   }
 
   personnaliserLiensCal();
