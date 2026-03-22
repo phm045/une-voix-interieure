@@ -2322,3 +2322,20 @@ textarea.blog-comments__input {
     height: 16px;
   }
 }
+
+/* --- Indicateur paiement RDV --- */
+.rdv-paiement {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+
+.rdv-paiement svg {
+  flex-shrink: 0;
+}
+
+.compte-liste__service {
+  display: flex;
+  align-items: center;
+}
