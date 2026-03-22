@@ -3,10 +3,10 @@
 // ========================================
 
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const db = require('../db/database');
+const { dbWrapper: db } = require('../db/database');
 const { requiertAuth } = require('../middleware/auth');
 
 const router = express.Router();

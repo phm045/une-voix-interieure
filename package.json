@@ -7,15 +7,18 @@
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
-  "keywords": ["bien-être", "massage", "authentification"],
+  "keywords": [
+    "bien-être",
+    "massage",
+    "authentification"
+  ],
   "author": "",
   "license": "ISC",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "better-sqlite3": "^12.8.0",
+    "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "csrf-csrf": "^4.0.3",
     "dotenv": "^17.3.1",
@@ -23,6 +26,7 @@
     "express-rate-limit": "^8.3.1",
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "sql.js": "^1.14.1"
   }
 }
