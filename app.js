@@ -988,15 +988,6 @@
         stripe_session_id: sessionId
       });
 
-      // Cr\u00e9er aussi un RDV \u00e0 planifier pour cette commande
-      await supabase.from('reservations').insert({
-        user_id: session.user.id,
-        service: infos.service,
-        date_rdv: new Date().toISOString(),
-        statut: '\u00e0 planifier',
-        notes: 'stripe:' + sessionId
-      });
-
       // Naviguer vers Mon compte > Commandes
       showPage('mon-compte');
       setTimeout(function () {
@@ -1209,12 +1200,27 @@
     if (!liste || !vide) return;
 
     try {
-      var { data, error } = await supabase
+      // Charger les r\u00e9servations
+      var { data: rdvData, error: rdvError } = await supabase
         .from('reservations')
         .select('*')
         .order('date_rdv', { ascending: true });
 
-      if (error || !data || data.length === 0) {
+      // Charger les commandes pour savoir lesquelles sont pay\u00e9es
+      var { data: cmdData } = await supabase
+        .from('commandes')
+        .select('service, statut')
+        .eq('statut', 'pay\u00e9');
+
+      // Construire un set des services pay\u00e9s (avec compteur)
+      var servicesPaies = {};
+      if (cmdData) {
+        cmdData.forEach(function (c) {
+          servicesPaies[c.service] = (servicesPaies[c.service] || 0) + 1;
+        });
+      }
+
+      if (rdvError || !rdvData || rdvData.length === 0) {
         liste.innerHTML = '';
         vide.style.display = '';
         return;
@@ -1222,7 +1228,10 @@
 
       vide.style.display = 'none';
       var maintenant = new Date();
-      liste.innerHTML = '<div class="compte-liste">' + data.map(function (r) {
+      // Compter les RDV d\u00e9j\u00e0 trait\u00e9s par service pour le matching
+      var compteurRdv = {};
+
+      liste.innerHTML = '<div class="compte-liste">' + rdvData.map(function (r) {
         var dateRdv = new Date(r.date_rdv);
         var dateStr = dateRdv.toLocaleDateString('fr-FR', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -1231,21 +1240,33 @@
           hour: '2-digit', minute: '2-digit'
         });
         var passe = dateRdv < maintenant;
-        var statutClasse = passe ? 'compte-liste__statut--expire' : 'compte-liste__statut--actif';
-        var statutTexte = passe ? 'Termin\u00e9' : '\u00c0 venir';
-        if (r.statut === 'annul\u00e9') { statutClasse = 'compte-liste__statut--expire'; statutTexte = 'Annul\u00e9'; }
-        if (r.statut === '\u00e0 planifier') { statutClasse = 'compte-liste__statut--paye'; statutTexte = '\u00c0 planifier'; }
 
-        var dateAffichee = r.statut === '\u00e0 planifier'
-          ? 'Pay\u00e9 le ' + new Date(r.date_creation || r.date_rdv).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
-          : dateStr + ' \u00e0 ' + heureStr;
+        // D\u00e9terminer le statut temporel
+        var statutTexte = passe ? 'Termin\u00e9' : '\u00c0 venir';
+        if (r.statut === 'annul\u00e9') statutTexte = 'Annul\u00e9';
+
+        // D\u00e9terminer si pay\u00e9 : soit via notes stripe:, soit via une commande correspondante
+        var estPaye = false;
+        if (r.notes && r.notes.indexOf('stripe:') === 0) {
+          estPaye = true;
+        } else if (servicesPaies[r.service] && servicesPaies[r.service] > (compteurRdv[r.service] || 0)) {
+          estPaye = true;
+          compteurRdv[r.service] = (compteurRdv[r.service] || 0) + 1;
+        }
+
+        // Ic\u00f4ne paiement : rond vert = pay\u00e9, rond rouge = non pay\u00e9
+        var paiementIcone = estPaye
+          ? '<span class="rdv-paiement rdv-paiement--paye" title="Pay\u00e9"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="hsl(142 50% 45%)" stroke="hsl(142 50% 35%)"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2.5"/></svg></span>'
+          : '<span class="rdv-paiement rdv-paiement--nonpaye" title="Non pay\u00e9"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="hsl(0 60% 50%)" stroke="hsl(0 60% 40%)"/><path d="M15 9l-6 6M9 9l6 6" stroke="white" stroke-width="2.5"/></svg></span>';
+
+        var dateAffichee = dateStr + ' \u00e0 ' + heureStr;
 
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
-            '<span class="compte-liste__service">' + r.service + '</span>' +
+            '<span class="compte-liste__service">' + paiementIcone + ' ' + r.service + '</span>' +
             '<span class="compte-liste__date">' + dateAffichee + '</span>' +
           '</div>' +
-          '<span class="compte-liste__statut ' + statutClasse + '">' + statutTexte + '</span>' +
+          '<span class="compte-liste__statut ' + (r.statut === 'annul\u00e9' ? 'compte-liste__statut--expire' : (passe ? 'compte-liste__statut--expire' : 'compte-liste__statut--actif')) + '">' + statutTexte + '</span>' +
         '</div>';
       }).join('') + '</div>';
     } catch (e) {}
