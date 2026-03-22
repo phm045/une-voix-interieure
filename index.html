@@ -1289,6 +1289,16 @@
           <div class="compte-danger">
             <p class="compte-danger__label">Zone de danger</p>
             <p class="compte-danger__desc">La suppression de votre compte est définitive. Toutes vos données (profil, rendez-vous, commandes) seront effacées.</p>
+            <div class="auth-form__group" id="groupe-mdp-suppression" hidden>
+              <label for="mdp-suppression" class="auth-form__label">Confirmez votre mot de passe</label>
+              <div class="auth-form__password-wrapper">
+                <input type="password" id="mdp-suppression" class="auth-form__input" placeholder="Votre mot de passe" autocomplete="current-password">
+                <button type="button" class="auth-form__toggle-pwd" aria-label="Afficher le mot de passe" data-toggle-pwd="mdp-suppression">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <div class="auth-form__message auth-form__message--erreur" id="erreur-mdp-suppression" hidden></div>
+            </div>
             <button class="btn btn--danger auth-form__submit" id="btn-supprimer-compte">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
               Supprimer mon compte

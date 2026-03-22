@@ -1077,22 +1077,66 @@
     });
   }
 
-  // --- Suppression du compte ---
+  // --- Suppression du compte (avec confirmation mot de passe) ---
   var btnSupprimer = document.getElementById('btn-supprimer-compte');
-  if (btnSupprimer) {
+  var groupeMdp = document.getElementById('groupe-mdp-suppression');
+  var inputMdp = document.getElementById('mdp-suppression');
+  var erreurMdp = document.getElementById('erreur-mdp-suppression');
+  var etapeSuppr = 0; // 0 = bouton initial, 1 = mot de passe demand\u00e9
+
+  if (btnSupprimer && groupeMdp && inputMdp) {
     btnSupprimer.addEventListener('click', async function () {
+
+      // \u00c9tape 1 : afficher le champ mot de passe
+      if (etapeSuppr === 0) {
+        groupeMdp.hidden = false;
+        inputMdp.focus();
+        btnSupprimer.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Confirmer la suppression';
+        etapeSuppr = 1;
+        return;
+      }
+
+      // \u00c9tape 2 : v\u00e9rifier le mot de passe et supprimer
+      var mdp = inputMdp.value.trim();
+      if (!mdp) {
+        erreurMdp.textContent = 'Veuillez saisir votre mot de passe.';
+        erreurMdp.hidden = false;
+        inputMdp.focus();
+        return;
+      }
+
+      erreurMdp.hidden = true;
       btnSupprimer.disabled = true;
-      btnSupprimer.textContent = 'Suppression en cours\u2026';
+      btnSupprimer.textContent = 'V\u00e9rification en cours\u2026';
 
       try {
+        // R\u00e9cup\u00e9rer l'email de l'utilisateur connect\u00e9
         var { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           alert('Vous devez \u00eatre connect\u00e9 pour supprimer votre compte.');
-          btnSupprimer.disabled = false;
-          btnSupprimer.textContent = 'Supprimer mon compte';
+          resetBtnSuppr();
           return;
         }
 
+        var email = session.user.email;
+
+        // V\u00e9rifier le mot de passe en se reconnectant
+        var { error: authError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: mdp
+        });
+
+        if (authError) {
+          erreurMdp.textContent = 'Mot de passe incorrect.';
+          erreurMdp.hidden = false;
+          inputMdp.value = '';
+          inputMdp.focus();
+          resetBtnSuppr();
+          return;
+        }
+
+        // Mot de passe correct \u2014 supprimer le compte
+        btnSupprimer.textContent = 'Suppression en cours\u2026';
         var userId = session.user.id;
 
         await supabase.from('rendez_vous').delete().eq('user_id', userId);
@@ -1113,11 +1157,17 @@
         alert('Votre compte a \u00e9t\u00e9 supprim\u00e9. Merci d\u2019avoir fait partie de Lumi\u00e8re Int\u00e9rieure.');
       } catch (err) {
         console.error('Erreur suppression compte:', err);
-        btnSupprimer.disabled = false;
-        btnSupprimer.textContent = 'Supprimer mon compte';
+        resetBtnSuppr();
         alert('Une erreur est survenue. Veuillez r\u00e9essayer.');
       }
     });
+  }
+
+  function resetBtnSuppr() {
+    if (btnSupprimer) {
+      btnSupprimer.disabled = false;
+      btnSupprimer.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Confirmer la suppression';
+    }
   }
 
   // Charger le profil et toutes les donn\u00e9es quand on navigue vers Mon compte
