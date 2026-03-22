@@ -5,6 +5,30 @@
 (function () {
   'use strict';
 
+  // --- Safe storage wrappers (fallback to in-memory when sandboxed) ---
+  var _memStore = {};
+  var _memSession = {};
+  function _safeStorage(type) {
+    var mem = type === 'session' ? _memSession : _memStore;
+    var fallback = {
+      getItem: function(k) { return mem[k] !== undefined ? mem[k] : null; },
+      setItem: function(k, v) { mem[k] = String(v); },
+      removeItem: function(k) { delete mem[k]; }
+    };
+    try {
+      var key = (type === 'session' ? 'session' : 'local') + 'Storage';
+      var s = window[key];
+      if (!s) return fallback;
+      s.setItem('__test__', '1');
+      s.removeItem('__test__');
+      return s;
+    } catch (e) {
+      return fallback;
+    }
+  }
+  var safeLocal = _safeStorage('local');
+  var safeSession = _safeStorage('session');
+
   // --- Theme Toggle ---
   const toggle = document.querySelector('[data-theme-toggle]');
   const root = document.documentElement;
@@ -364,13 +388,13 @@
   var closeBtn = overlay ? overlay.querySelector('.blog-overlay__close') : null;
   var backdrop = overlay ? overlay.querySelector('.blog-overlay__backdrop') : null;
 
-  // --- Likes, Views & Comments helpers (localStorage) ---
+  // --- Likes, Views & Comments helpers (safe storage) ---
   function getLikes(articleId) {
-    try { return JSON.parse(localStorage.getItem('blog_likes_' + articleId)) || { count: 0, liked: false }; }
+    try { return JSON.parse(safeLocal.getItem('blog_likes_' + articleId)) || { count: 0, liked: false }; }
     catch(e) { return { count: 0, liked: false }; }
   }
   function saveLikes(articleId, data) {
-    try { localStorage.setItem('blog_likes_' + articleId, JSON.stringify(data)); } catch(e) {}
+    try { safeLocal.setItem('blog_likes_' + articleId, JSON.stringify(data)); } catch(e) {}
   }
   // --- Views: shared counter via countapi (visible by everyone) ---
   var viewsCache = {};
@@ -417,11 +441,11 @@
     }
   }
   function getComments(articleId) {
-    try { return JSON.parse(localStorage.getItem('blog_comments_' + articleId)) || []; }
+    try { return JSON.parse(safeLocal.getItem('blog_comments_' + articleId)) || []; }
     catch(e) { return []; }
   }
   function saveComments(articleId, comments) {
-    try { localStorage.setItem('blog_comments_' + articleId, JSON.stringify(comments)); } catch(e) {}
+    try { safeLocal.setItem('blog_comments_' + articleId, JSON.stringify(comments)); } catch(e) {}
   }
   function formatDate(d) {
     var day = d.getDate();
@@ -596,7 +620,7 @@
 
   // --- Newsletter Forms ---
   function getSubscribers() {
-    try { return JSON.parse(localStorage.getItem('newsletter_subscribers')) || []; }
+    try { return JSON.parse(safeLocal.getItem('newsletter_subscribers')) || []; }
     catch(e) { return []; }
   }
   function saveSubscriber(data) {
@@ -605,7 +629,7 @@
     var exists = subs.some(function(s) { return s.email === data.email; });
     if (!exists) {
       subs.push(data);
-      try { localStorage.setItem('newsletter_subscribers', JSON.stringify(subs)); } catch(e) {}
+      try { safeLocal.setItem('newsletter_subscribers', JSON.stringify(subs)); } catch(e) {}
     }
     return !exists;
   }
@@ -1297,7 +1321,7 @@
     btn.addEventListener('click', function () {
       var service = this.getAttribute('data-cal-service');
       if (service) {
-        sessionStorage.setItem('cal_service_pending', service);
+        safeSession.setItem('cal_service_pending', service);
       }
     });
   });
@@ -1312,8 +1336,8 @@
         var uid = data.uid;
         var startTime = data.startTime;
         var title = data.title;
-        var serviceName = sessionStorage.getItem('cal_service_pending') || title || 'Consultation';
-        sessionStorage.removeItem('cal_service_pending');
+        var serviceName = safeSession.getItem('cal_service_pending') || title || 'Consultation';
+        safeSession.removeItem('cal_service_pending');
 
         try {
           var { data: { session } } = await supabase.auth.getSession();
@@ -1373,12 +1397,12 @@
     var bookingId = calUid || calBookingLegacy;
     if (!bookingId) return;
 
-    // R\u00e9cup\u00e9rer le nom du service depuis sessionStorage (stock\u00e9 au clic sur le bouton)
-    var serviceName = sessionStorage.getItem('cal_service_pending')
+    // R\u00e9cup\u00e9rer le nom du service depuis safeSession (stock\u00e9 au clic sur le bouton)
+    var serviceName = safeSession.getItem('cal_service_pending')
       || params.get('cal_service')
       || calTitle
       || 'Consultation';
-    sessionStorage.removeItem('cal_service_pending');
+    safeSession.removeItem('cal_service_pending');
 
     // Date du RDV
     var dateRdv = calStart || params.get('cal_date') || new Date().toISOString();
