@@ -936,4 +936,24 @@
   // Vérifier le statut auth au chargement
   verifierStatutAuth();
 
+  // --- Onglets Mon Compte ---
+  document.querySelectorAll('.compte-tabs__btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tabId = this.getAttribute('data-tab');
+
+      // Désactiver tous les onglets
+      document.querySelectorAll('.compte-tabs__btn').forEach(function (b) {
+        b.classList.remove('compte-tabs__btn--active');
+      });
+      document.querySelectorAll('.compte-tab-content').forEach(function (c) {
+        c.classList.remove('compte-tab-content--active');
+      });
+
+      // Activer l'onglet cliqué
+      this.classList.add('compte-tabs__btn--active');
+      var target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('compte-tab-content--active');
+    });
+  });
+
 })();

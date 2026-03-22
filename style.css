@@ -2096,6 +2096,89 @@ textarea.blog-comments__input {
   color: var(--color-text);
 }
 
+/* --- Onglets Mon Compte --- */
+.compte-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+  padding-bottom: var(--space-1);
+}
+
+.compte-tabs__btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+
+.compte-tabs__btn:hover {
+  color: var(--color-text);
+}
+
+.compte-tabs__btn--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.compte-tabs__btn svg {
+  flex-shrink: 0;
+}
+
+/* --- Contenu des onglets --- */
+.compte-tab-content {
+  display: none;
+}
+
+.compte-tab-content--active {
+  display: block;
+}
+
+/* --- État vide --- */
+.compte-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-10) var(--space-4);
+  gap: var(--space-3);
+}
+
+.compte-empty__icon {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  margin-bottom: var(--space-2);
+}
+
+.compte-empty__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.compte-empty__desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.compte-empty__btn {
+  margin-top: var(--space-4);
+}
+
 @media (max-width: 768px) {
   .auth-card {
     padding: var(--space-6) var(--space-4);
@@ -2103,5 +2186,20 @@ textarea.blog-comments__input {
 
   .auth-form__row {
     grid-template-columns: 1fr;
+  }
+
+  .compte-tabs {
+    gap: 0;
+  }
+
+  .compte-tabs__btn {
+    font-size: var(--text-xs);
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .compte-tabs__btn svg {
+    width: 16px;
+    height: 16px;
   }
 }
