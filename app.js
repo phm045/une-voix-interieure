@@ -478,6 +478,62 @@
         '<p>Beaucoup de personnes viennent me consulter en disant \u00ab je savais d\u00e9j\u00e0, au fond \u00bb. Les cartes n\u2019ont fait que confirmer ce que leur c\u0153ur leur soufflait depuis longtemps. Et c\u2019est peut-\u00eatre la plus belle fonction de la voyance\u00a0: non pas r\u00e9v\u00e9ler l\u2019inconnu, mais <strong>vous r\u00e9concilier avec ce que vous savez d\u00e9j\u00e0</strong>.</p>' +
         '<p>Votre ressenti n\u2019est pas votre ennemi. Il est votre alli\u00e9 le plus fid\u00e8le. Apprenez \u00e0 l\u2019\u00e9couter, \u00e0 le respecter, \u00e0 lui faire de la place. Car la lumi\u00e8re que vous cherchez \u00e0 l\u2019ext\u00e9rieur est d\u00e9j\u00e0 l\u00e0, en vous. Elle attend simplement que vous lui fassiez confiance.</p>' +
         '<div class="blog-article__cta"><p>Vous avez besoin d\u2019un espace o\u00f9 votre ressenti est entendu et respect\u00e9\u202f? R\u00e9servez une consultation, je suis l\u00e0 pour \u00e9clairer ce que vous portez en vous.</p></div>'
+    },
+    'lithotherapie': {
+      category: 'Lithoth\u00e9rapie',
+      title: 'La lithoth\u00e9rapie\u00a0: quand les pierres accompagnent votre chemin de vie',
+      date: '22 mars 2026',
+      content: '<h2>Qu\u2019est-ce que la lithoth\u00e9rapie\u202f?</h2>' +
+        '<p>La lithoth\u00e9rapie est une pratique ancestrale qui utilise les <strong>pierres et cristaux</strong> comme supports de mieux-\u00eatre. Son principe repose sur l\u2019id\u00e9e que chaque min\u00e9ral poss\u00e8de une vibration propre, une \u00e9nergie particuli\u00e8re li\u00e9e \u00e0 sa composition chimique, sa couleur et sa structure cristalline.</p>' +
+        '<p>Utilis\u00e9e depuis la nuit des temps \u2014 en \u00c9gypte ancienne, en Inde, en Chine, dans les traditions am\u00e9rindiennes \u2014 la lithoth\u00e9rapie conna\u00eet aujourd\u2019hui un renouveau profond. De plus en plus de personnes se tournent vers les pierres pour accompagner un travail sur soi, compl\u00e9ter une d\u00e9marche de d\u00e9veloppement personnel ou simplement retrouver un sentiment d\u2019\u00e9quilibre au quotidien.</p>' +
+        '<p>Il est important de pr\u00e9ciser que la lithoth\u00e9rapie ne se substitue en aucun cas \u00e0 un traitement m\u00e9dical. C\u2019est un <strong>compl\u00e9ment</strong>, un soutien \u00e9nerg\u00e9tique et symbolique pour celles et ceux qui y sont sensibles.</p>' +
+        '<h2>Les pierres essentielles et leurs vertus</h2>' +
+        '<p>Voici les pierres que je recommande le plus souvent, que j\u2019utilise moi-m\u00eame dans ma pratique de voyance et que je conseille r\u00e9guli\u00e8rement en consultation\u00a0:</p>' +
+        '<p><strong>Am\u00e9thyste</strong> \u2014 La pierre de l\u2019intuition et de la s\u00e9r\u00e9nit\u00e9. Elle apaise le mental, favorise la m\u00e9ditation et ouvre le troisi\u00e8me \u0153il. C\u2019est ma compagne de chaque tirage de cartes. Plac\u00e9e sur la table de nuit, elle favorise un sommeil paisible et des r\u00eaves \u00e9clairants.</p>' +
+        '<p><strong>Quartz rose</strong> \u2014 La pierre du c\u0153ur par excellence. Elle incarne l\u2019amour inconditionnel, la douceur et la compassion. Id\u00e9ale pour apaiser les blessures \u00e9motionnelles, elle aide \u00e0 s\u2019ouvrir \u00e0 l\u2019amour de soi et des autres. Indispensable quand on traverse une p\u00e9riode de rupture ou de doute affectif.</p>' +
+        '<p><strong>Tourmaline noire</strong> \u2014 La reine de la protection \u00e9nerg\u00e9tique. Elle absorbe les \u00e9nergies n\u00e9gatives comme une \u00e9ponge et cr\u00e9e un v\u00e9ritable bouclier autour de vous. Je la recommande syst\u00e9matiquement aux personnes hypersensibles ou en contact r\u00e9gulier avec des personnalites \u00e9puisantes.</p>' +
+        '<p><strong>Citrine</strong> \u2014 La pierre de la joie et de l\u2019abondance. Elle rayonne d\u2019une \u00e9nergie solaire qui redonne confiance et optimisme. Elle aide \u00e0 manifester ses projets et \u00e0 attirer la prosp\u00e9rit\u00e9. Excellente pour accompagner une p\u00e9riode de nouveau d\u00e9part.</p>' +
+        '<p><strong>Lapis-lazuli</strong> \u2014 La pierre de la v\u00e9rit\u00e9 et de la communication. Elle stimule la clairvoyance, aide \u00e0 exprimer sa v\u00e9rit\u00e9 int\u00e9rieure et renforce l\u2019honn\u00eatet\u00e9 envers soi-m\u00eame. Tr\u00e8s utile pour ceux qui ont du mal \u00e0 poser des limites ou \u00e0 dire non.</p>' +
+        '<p><strong>Labradorite</strong> \u2014 La pierre des th\u00e9rapeutes et des empathes. Elle agit comme un bouclier \u00e9nerg\u00e9tique qui prot\u00e8ge de l\u2019absorption des \u00e9motions d\u2019autrui. C\u2019est la pierre que je porte le plus souvent sur moi pendant les consultations.</p>' +
+        '<p><strong>\u0152il-de-tigre</strong> \u2014 La pierre du courage et de l\u2019ancrage. Elle renvoie les mauvaises intentions comme un miroir, renforce la volont\u00e9 et aide \u00e0 prendre des d\u00e9cisions avec assurance. Parfaite pour les p\u00e9riodes de doute ou de vuln\u00e9rabilit\u00e9.</p>' +
+        '<p><strong>Quartz clair (cristal de roche)</strong> \u2014 Le ma\u00eetre cristal, l\u2019amplificateur universel. Il renforce l\u2019\u00e9nergie de toutes les autres pierres et clarifie les intentions. C\u2019est la pierre id\u00e9ale pour accompagner la m\u00e9ditation et la visualisation.</p>' +
+        '<h2>Comment choisir sa pierre\u202f?</h2>' +
+        '<p>La r\u00e8gle la plus importante en lithoth\u00e9rapie est simple\u00a0: <strong>laissez-vous guider par votre intuition</strong>. La pierre qui vous attire est celle dont vous avez besoin. Ce n\u2019est pas un hasard si votre regard se pose toujours sur la m\u00eame am\u00e9thyste, ou si vous ressentez une chaleur en tenant un quartz rose.</p>' +
+        '<p>Quelques conseils pratiques\u00a0:</p>' +
+        '<ul>' +
+        '<li>En boutique, prenez le temps de <strong>toucher les pierres</strong>. Celle qui vous attire, qui vous procure une sensation agr\u00e9able, est la bonne</li>' +
+        '<li>Ne vous fiez pas uniquement aux \u00ab propri\u00e9t\u00e9s \u00bb list\u00e9es dans les livres. Votre ressenti personnel prime toujours</li>' +
+        '<li>Une pierre peut vous appeler \u00e0 un moment pr\u00e9cis de votre vie, puis ne plus r\u00e9sonner quelques mois plus tard. C\u2019est normal\u00a0: vos besoins \u00e9voluent</li>' +
+        '<li>\u00c9vitez d\u2019acheter des pierres sur Internet sans les avoir vues \u2014 la connexion se fait par le toucher et le regard</li>' +
+        '</ul>' +
+        '<h2>Purifier et recharger ses pierres</h2>' +
+        '<p>Les pierres absorbent les \u00e9nergies. Il est donc essentiel de les <strong>purifier r\u00e9guli\u00e8rement</strong> et de les <strong>recharger</strong> pour qu\u2019elles conservent toute leur puissance.</p>' +
+        '<p><strong>Purification\u00a0:</strong></p>' +
+        '<ul>' +
+        '<li><strong>Eau claire</strong> \u2014 Passez la pierre sous l\u2019eau courante pendant quelques minutes (attention\u00a0: certaines pierres comme la s\u00e9l\u00e9nite ou la pyrite ne supportent pas l\u2019eau)</li>' +
+        '<li><strong>Fum\u00e9e de sauge ou palo santo</strong> \u2014 M\u00e9thode douce et universelle, adapt\u00e9e \u00e0 toutes les pierres</li>' +
+        '<li><strong>Sel</strong> \u2014 Posez la pierre sur un lit de gros sel pendant quelques heures (m\u00e9thode plus intense, \u00e0 utiliser avec pr\u00e9caution)</li>' +
+        '</ul>' +
+        '<p><strong>Rechargement\u00a0:</strong></p>' +
+        '<ul>' +
+        '<li><strong>Lumi\u00e8re de la lune</strong> \u2014 Posez vos pierres sur le rebord d\u2019une fen\u00eatre une nuit de pleine lune. C\u2019est la m\u00e9thode la plus douce et la plus universelle</li>' +
+        '<li><strong>Lumi\u00e8re du soleil</strong> \u2014 Quelques heures au soleil matinal pour les pierres chaudes (citrine, \u0153il-de-tigre, cornaline). Attention\u00a0: l\u2019am\u00e9thyste et le quartz rose p\u00e2lissent au soleil</li>' +
+        '<li><strong>G\u00e9ode de quartz ou d\u2019am\u00e9thyste</strong> \u2014 Posez vos pierres dedans pour un rechargement en douceur</li>' +
+        '</ul>' +
+        '<h2>Int\u00e9grer les pierres au quotidien</h2>' +
+        '<p>La lithoth\u00e9rapie ne se limite pas \u00e0 poser une pierre sur une \u00e9tag\u00e8re. Voici des mani\u00e8res concr\u00e8tes de les int\u00e9grer \u00e0 votre vie\u00a0:</p>' +
+        '<ul>' +
+        '<li><strong>Dans votre poche</strong> \u2014 Gardez une tourmaline noire ou un \u0153il-de-tigre sur vous pour les journ\u00e9es difficiles</li>' +
+        '<li><strong>Sur votre table de nuit</strong> \u2014 Am\u00e9thyste pour un sommeil paisible, s\u00e9l\u00e9nite pour purifier l\u2019espace</li>' +
+        '<li><strong>Pendant la m\u00e9ditation</strong> \u2014 Tenez un cristal de roche dans la main ou posez-le devant vous pour amplifier votre intention</li>' +
+        '<li><strong>Sur votre bureau</strong> \u2014 Citrine pour la cr\u00e9ativit\u00e9 et la concentration, fluorite pour la clart\u00e9 mentale</li>' +
+        '<li><strong>En bijou</strong> \u2014 Bracelet, pendentif ou bague\u00a0: porter la pierre au contact de la peau renforce son action</li>' +
+        '</ul>' +
+        '<h2>Lithoth\u00e9rapie et voyance\u00a0: un duo puissant</h2>' +
+        '<p>Dans ma pratique, les pierres sont des alli\u00e9es pr\u00e9cieuses. Elles m\u2019aident \u00e0 <strong>cr\u00e9er un espace sacr\u00e9</strong> pour les consultations, \u00e0 aff\u00fbter mon intuition et \u00e0 prot\u00e9ger l\u2019\u00e9nergie de l\u2019\u00e9change. Il m\u2019arrive souvent de recommander une pierre sp\u00e9cifique \u00e0 la fin d\u2019une consultation, en lien avec ce que les cartes ont r\u00e9v\u00e9l\u00e9.</p>' +
+        '<p>Les pierres ne remplacent pas la guidance des cartes, et les cartes ne remplacent pas les pierres. Ensemble, elles offrent un accompagnement \u00e0 la fois subtil et concret\u00a0: les cartes \u00e9clairent le chemin, et les pierres vous soutiennent en le parcourant.</p>' +
+        '<p>Si vous \u00eates curieux(se) de d\u00e9couvrir quelle pierre vous accompagnerait le mieux en ce moment, n\u2019h\u00e9sitez pas \u00e0 en parler lors de votre prochaine consultation. Ensemble, nous trouverons la pierre qui r\u00e9sonne avec votre \u00e9nergie du moment.</p>' +
+        '<div class="blog-article__cta"><p>Envie de savoir quelle pierre vous correspond\u202f? Parlons-en lors d\u2019une consultation pour trouver votre alli\u00e9e min\u00e9rale.</p></div>'
     }
   };
 
