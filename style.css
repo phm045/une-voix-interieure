@@ -1643,10 +1643,11 @@ section {
     justify-content: center;
   }
   .footer__brand .header__logo::before {
-    left: calc(50% - 52px);
-    width: 65px;
-    height: 65px;
-    filter: blur(10px);
+    left: 50%;
+    width: 70px;
+    height: 70px;
+    filter: blur(12px);
+    transform: translate(calc(-50% - 60px), -50%);
   }
   .footer__col h4 {
     font-size: var(--text-xs);
