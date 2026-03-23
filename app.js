@@ -593,6 +593,85 @@
     }
   };
 
+  // --- Dernières nouveautés (Accueil) ---
+  (function populateNouveautes() {
+    var grid = document.getElementById('nouveautes-grid');
+    if (!grid) return;
+
+    // Récupérer les cartes blog du DOM pour garder l'ordre exact
+    var blogCards = document.querySelectorAll('.blog-card[data-article]');
+    var articles = [];
+
+    // Parser les dates françaises pour trier par date décroissante
+    var moisFr = {'janvier':0,'février':1,'mars':2,'avril':3,'mai':4,'juin':5,'juillet':6,'août':7,'septembre':8,'octobre':9,'novembre':10,'décembre':11};
+    function parseDate(str) {
+      var parts = str.trim().split(' ');
+      if (parts.length !== 3) return new Date(0);
+      return new Date(parseInt(parts[2]), moisFr[parts[1].toLowerCase()] || 0, parseInt(parts[0]));
+    }
+
+    blogCards.forEach(function(card) {
+      var slug = card.getAttribute('data-article');
+      var img = card.querySelector('.blog-card__image img');
+      var category = card.querySelector('.blog-card__category');
+      var title = card.querySelector('.blog-card__title');
+      var excerpt = card.querySelector('.blog-card__excerpt');
+      var date = card.querySelector('.blog-card__date');
+      if (title && date) {
+        articles.push({
+          slug: slug,
+          img: img ? img.getAttribute('src') : '',
+          imgAlt: img ? img.getAttribute('alt') : '',
+          category: category ? category.textContent : '',
+          title: title.textContent,
+          excerpt: excerpt ? excerpt.textContent : '',
+          dateStr: date.textContent,
+          dateObj: parseDate(date.textContent)
+        });
+      }
+    });
+
+    // Trier par date décroissante et prendre les 3 premiers
+    articles.sort(function(a, b) { return b.dateObj - a.dateObj; });
+    var latest = articles.slice(0, 3);
+
+    latest.forEach(function(art) {
+      var card = document.createElement('div');
+      card.className = 'nouveautes-card fade-in';
+      card.setAttribute('data-nav', 'blog');
+      card.setAttribute('data-open-article', art.slug);
+      card.innerHTML =
+        '<div class="nouveautes-card__image">' +
+          '<span class="nouveautes-card__badge">Nouveau</span>' +
+          '<img src="' + art.img + '" alt="' + art.imgAlt + '" width="640" height="400" loading="lazy">' +
+        '</div>' +
+        '<div class="nouveautes-card__body">' +
+          '<p class="nouveautes-card__category">' + art.category + '</p>' +
+          '<h3 class="nouveautes-card__title">' + art.title + '</h3>' +
+          '<p class="nouveautes-card__excerpt">' + art.excerpt + '</p>' +
+          '<p class="nouveautes-card__date">' + art.dateStr + '</p>' +
+        '</div>';
+
+      // Clic → naviguer vers le blog et ouvrir l'article
+      card.addEventListener('click', function() {
+        // Naviguer vers la page blog
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        var blogPage = document.getElementById('blog');
+        if (blogPage) blogPage.classList.add('active');
+        document.querySelectorAll('[data-nav]').forEach(function(n) { n.classList.remove('active'); });
+        document.querySelectorAll('[data-nav="blog"]').forEach(function(n) { n.classList.add('active'); });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Ouvrir l'article après un court délai
+        setTimeout(function() {
+          var blogCard = document.querySelector('.blog-card[data-article="' + art.slug + '"]');
+          if (blogCard) blogCard.click();
+        }, 300);
+      });
+
+      grid.appendChild(card);
+    });
+  })();
+
   // --- Blog Overlay Logic ---
   var overlay = document.getElementById('blog-article-overlay');
   var articleBody = document.getElementById('blog-article-body');
