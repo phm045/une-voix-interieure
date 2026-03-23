@@ -1196,7 +1196,29 @@ section {
   transform: scale(1.03);
 }
 .blog-card__content {
+  position: relative;
   padding: var(--space-6);
+  overflow: hidden;
+}
+
+/* Carte Le Soleil — tarot en arrière-plan */
+.blog-card__content::before {
+  content: '';
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 180px;
+  height: 180px;
+  opacity: 0.15;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' fill='none'%3E%3Ccircle cx='100' cy='90' r='38' stroke='%23b8952e' stroke-width='1'/%3E%3Ccircle cx='100' cy='90' r='28' stroke='%23b8952e' stroke-width='0.5'/%3E%3Ccircle cx='92' cy='84' r='3' fill='%23b8952e'/%3E%3Ccircle cx='108' cy='84' r='3' fill='%23b8952e'/%3E%3Cpath d='M94 96 Q100 102 106 96' stroke='%23b8952e' stroke-width='1' stroke-linecap='round'/%3E%3Cline x1='100' y1='10' x2='100' y2='42' stroke='%23d4af37' stroke-width='1'/%3E%3Cline x1='100' y1='138' x2='100' y2='170' stroke='%23d4af37' stroke-width='1'/%3E%3Cline x1='20' y1='90' x2='52' y2='90' stroke='%23d4af37' stroke-width='1'/%3E%3Cline x1='148' y1='90' x2='180' y2='90' stroke='%23d4af37' stroke-width='1'/%3E%3Cline x1='40' y1='30' x2='62' y2='56' stroke='%23d4af37' stroke-width='0.8'/%3E%3Cline x1='160' y1='30' x2='138' y2='56' stroke='%23d4af37' stroke-width='0.8'/%3E%3Cline x1='40' y1='150' x2='62' y2='124' stroke='%23d4af37' stroke-width='0.8'/%3E%3Cline x1='160' y1='150' x2='138' y2='124' stroke='%23d4af37' stroke-width='0.8'/%3E%3Cline x1='55' y1='18' x2='68' y2='50' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='145' y1='18' x2='132' y2='50' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='15' y1='55' x2='50' y2='66' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='185' y1='55' x2='150' y2='66' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='15' y1='125' x2='50' y2='114' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='185' y1='125' x2='150' y2='114' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='55' y1='162' x2='68' y2='130' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cline x1='145' y1='162' x2='132' y2='130' stroke='%23d4af37' stroke-width='0.6'/%3E%3Cpath d='M70 140 Q85 130 100 140 Q115 130 130 140' stroke='%23b8952e' stroke-width='0.6' fill='none'/%3E%3Cpath d='M60 155 Q80 145 100 155 Q120 145 140 155' stroke='%23b8952e' stroke-width='0.5' fill='none'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.blog-card:hover .blog-card__content::before {
+  opacity: 0.22;
 }
 .blog-card__category {
   font-size: var(--text-xs);
