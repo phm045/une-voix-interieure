@@ -3262,6 +3262,65 @@ textarea.blog-comments__input {
   .divider {
     margin-inline: auto;
   }
+
+  /* ---- Floating buttons: prevent overlap with content ---- */
+  /* Add safe bottom padding so floating buttons don't cover text */
+  .page {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Cal-note ("Paiement sécurisé") better alignment on mobile */
+  .cal-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  /* Service cards: breathing room on mobile */
+  .service-card__content p {
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+
+  /* Service card tags wrap nicely */
+  .service-card__details {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* Trust banner more compact */
+  .trust-banner__title {
+    font-size: var(--text-base);
+  }
+  .trust-banner__desc {
+    font-size: var(--text-xs);
+  }
+
+  /* Footer touch targets bigger */
+  .footer__col a {
+    padding-block: var(--space-2);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Improve readability on mobile */
+  .hero__desc {
+    font-size: var(--text-sm);
+    line-height: 1.75;
+  }
+
+  /* Blog articles: bigger tap targets */
+  .blog-card {
+    padding: var(--space-4);
+  }
+
+
+  /* Smooth scroll behavior */
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Extra-small screens (iPhone SE etc.) */
