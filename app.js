@@ -3721,8 +3721,15 @@
       if (el) el.textContent = (s.nb_produits != null) ? s.nb_produits : '0';
       el = document.getElementById('stat-coupons');
       if (el) el.textContent = (s.nb_coupons_actifs != null) ? s.nb_coupons_actifs : '0';
-      el = document.getElementById('stat-newsletter');
-      if (el) el.textContent = (s.nb_newsletter != null) ? s.nb_newsletter : '0';
+      // Newsletter count always from Brevo (not Supabase)
+      try {
+        var brevoCount = await getBrevoNewsletterCount();
+        el = document.getElementById('stat-newsletter');
+        if (el) el.textContent = brevoCount;
+      } catch(e2) {
+        el = document.getElementById('stat-newsletter');
+        if (el) el.textContent = (s.nb_newsletter != null) ? s.nb_newsletter : '0';
+      }
     } catch(e) {
       // Fallback: try individual queries
       chargerAdminStatsFallback();
@@ -3762,6 +3769,12 @@
       var rdvRes = await supabase.from('reservations').select('id', { count: 'exact', head: true });
       var el6 = document.getElementById('stat-rdv');
       if (el6) el6.textContent = (rdvRes.count != null) ? rdvRes.count : '0';
+    } catch(e) {}
+    // Newsletter count from Brevo
+    try {
+      var nlCount = await getBrevoNewsletterCount();
+      var el7 = document.getElementById('stat-newsletter');
+      if (el7) el7.textContent = nlCount;
     } catch(e) {}
   }
 
@@ -4234,46 +4247,95 @@
     }
   }
 
-  // ─── 8. NEWSLETTER MANAGEMENT ───
+  // ─── 8. NEWSLETTER MANAGEMENT (via Brevo API) ───
+
+  // Fetch total contacts count from Brevo list
+  async function getBrevoNewsletterCount() {
+    try {
+      var response = await fetch('https://api.brevo.com/v3/contacts/lists/3', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', 'api-key': _bk }
+      });
+      if (!response.ok) return 0;
+      var info = await response.json();
+      return info.totalSubscribers || info.uniqueSubscribers || 0;
+    } catch(e) { return 0; }
+  }
+
   async function chargerAdminNewsletter() {
     var container = document.getElementById('admin-newsletter-table');
     if (!container) return;
+    container.innerHTML = '<p class="admin-dash-empty" style="opacity:0.6">Chargement depuis Brevo\u2026</p>';
+
     try {
-      var result = await supabase.rpc('get_admin_newsletter');
-      var data;
-      if (result.error || !result.data) {
-        // Try direct query
-        var fallback = await supabase.from('newsletter_subscribers').select('*').order('created_at', { ascending: false });
-        data = (fallback.error) ? [] : (fallback.data || []);
-      } else {
-        data = result.data || [];
+      // Fetch contacts from Brevo list 3 (newsletter)
+      var allContacts = [];
+      var offset = 0;
+      var limit = 50;
+      var hasMore = true;
+
+      while (hasMore) {
+        var response = await fetch('https://api.brevo.com/v3/contacts/lists/3/contacts?limit=' + limit + '&offset=' + offset + '&sort=desc', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', 'api-key': _bk }
+        });
+        if (!response.ok) throw new Error('Brevo API error: ' + response.status);
+        var result = await response.json();
+        var contacts = result.contacts || [];
+        allContacts = allContacts.concat(contacts);
+        if (contacts.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+        if (allContacts.length >= 500) hasMore = false;
       }
-      if (data.length === 0) {
-        container.innerHTML = '<p class="admin-dash-empty">Aucun abonn\u00e9 \u00e0 la newsletter pour le moment.</p>';
+
+      // Update stat counter
+      var statEl = document.getElementById('stat-newsletter');
+      if (statEl) statEl.textContent = allContacts.length;
+
+      if (allContacts.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun abonn\u00e9 \u00e0 la newsletter Brevo pour le moment.</p>';
         return;
       }
-      var html = '<div class="admin-dash-table--newsletter">';
+
+      var html = '<div style="margin-bottom:0.75rem;color:#bbb;font-size:0.85rem">' +
+        '<strong style="color:var(--accent,#d4a574)">' + allContacts.length + ' abonn\u00e9(s)</strong> sur la liste Brevo' +
+        '</div>';
+      html += '<div class="admin-dash-table--newsletter">';
       html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
         '<div class="admin-dash-table__cell">Pr\u00e9nom</div>' +
         '<div class="admin-dash-table__cell">Email</div>' +
         '<div class="admin-dash-table__cell">Date inscription</div>' +
         '<div class="admin-dash-table__cell">Statut</div>' +
         '</div>';
-      for (var i = 0; i < data.length; i++) {
-        var s = data[i];
-        var statusClass = s.actif ? 'success' : 'danger';
-        var statusText = s.actif ? 'Actif' : 'D\u00e9sinscrit';
+
+      for (var i = 0; i < allContacts.length; i++) {
+        var c = allContacts[i];
+        var prenom = (c.attributes && c.attributes.PRENOM) || (c.attributes && c.attributes.FIRSTNAME) || '\u2014';
+        var email = c.email || '\u2014';
+        var dateStr = '\u2014';
+        if (c.createdAt) {
+          dateStr = formatDateFR(c.createdAt);
+        } else if (c.attributes && c.attributes.ADDED_AT) {
+          dateStr = formatDateFR(c.attributes.ADDED_AT);
+        }
+        var isBlacklisted = c.emailBlacklisted || false;
+        var statusClass = isBlacklisted ? 'danger' : 'success';
+        var statusText = isBlacklisted ? 'D\u00e9sinscrit' : 'Actif';
+
         html += '<div class="admin-dash-table__row">' +
-          '<div class="admin-dash-table__cell" data-label="Pr\u00e9nom">' + escHtml(s.prenom || '—') + '</div>' +
-          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Email">' + escHtml(s.email) + '</div>' +
-          '<div class="admin-dash-table__cell" data-label="Inscrit le">' + formatDateFR(s.created_at) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Pr\u00e9nom">' + escHtml(prenom) + '</div>' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Email">' + escHtml(email) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Inscrit le">' + dateStr + '</div>' +
           '<div class="admin-dash-table__cell" data-label="Statut"><span class="admin-dash-badge admin-dash-badge--' + statusClass + '">' + statusText + '</span></div>' +
           '</div>';
       }
       html += '</div>';
       container.innerHTML = html;
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Table newsletter non disponible. Ex\u00e9cutez la migration SQL.</p>';
+      container.innerHTML = '<p class="admin-dash-empty">Impossible de charger les contacts Brevo. V\u00e9rifiez la cl\u00e9 API.</p>';
     }
   }
 
