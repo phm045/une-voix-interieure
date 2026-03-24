@@ -151,8 +151,9 @@
 }
 
 .container--admin-wide {
-  max-width: 1400px;
-  transition: max-width 0.3s ease;
+  max-width: 1800px;
+  width: 95vw;
+  transition: max-width 0.3s ease, width 0.3s ease;
 }
 
 /* ========================================
@@ -4639,7 +4640,8 @@ textarea.blog-comments__input {
 /* Admin Tabs */
 .admin-dash-tabs {
   display: flex;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -5051,7 +5053,8 @@ textarea.blog-comments__input {
 
 /* When admin is viewing Mon Compte, widen the container */
 #mon-compte .container--admin-wide {
-  max-width: 1400px;
+  max-width: 1800px;
+  width: 95vw;
 }
 
 /* ─── Admin CA Section ─── */
