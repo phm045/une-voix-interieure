@@ -626,9 +626,12 @@
   };
 
   // --- Dernières nouveautés (Accueil) — Toutes rubriques ---
-  (function populateNouveautes() {
+  window.__populateNouveautes = function populateNouveautes() {
     var grid = document.getElementById('nouveautes-grid');
     if (!grid) return;
+
+    var pinnedItems = JSON.parse(localStorage.getItem('pinned_items') || '[]');
+    function isItemPinned(slug) { return pinnedItems.indexOf(slug) !== -1; }
 
     var items = [];
     var moisFr = {'janvier':0,'f\u00e9vrier':1,'mars':2,'avril':3,'mai':4,'juin':5,'juillet':6,'ao\u00fbt':7,'septembre':8,'octobre':9,'novembre':10,'d\u00e9cembre':11};
@@ -657,7 +660,7 @@
       if (title && date) {
         items.push({
           type: 'blog', slug: slug,
-          pinned: card.hasAttribute('data-pinned'),
+          pinned: isItemPinned(slug),
           img: img ? img.getAttribute('src') : '',
           imgAlt: img ? img.getAttribute('alt') : '',
           category: cat ? cat.textContent : 'Blog',
@@ -678,9 +681,10 @@
       var img = card.querySelector('.service-card__image img');
       var price = card.querySelector('.service-card__price');
       if (h3) {
+        var slug = 'svc-' + (h3.textContent || '').toLowerCase().replace(/[^a-z0-9]/g, '-');
         items.push({
-          type: 'service', slug: 'svc-' + (h3.textContent || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
-          pinned: card.hasAttribute('data-pinned'),
+          type: 'service', slug: slug,
+          pinned: isItemPinned(slug),
           img: img ? img.getAttribute('src') : 'services-tarot.png',
           imgAlt: h3.textContent,
           category: 'Consultation',
@@ -700,9 +704,10 @@
       var p = card.querySelector('.service-card__content > p');
       var img = card.querySelector('.service-card__image img');
       if (h3) {
+        var slug = 'thp-' + (h3.textContent || '').toLowerCase().replace(/[^a-z0-9]/g, '-');
         items.push({
-          type: 'therapie', slug: 'thp-' + (h3.textContent || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
-          pinned: card.hasAttribute('data-pinned'),
+          type: 'therapie', slug: slug,
+          pinned: isItemPinned(slug),
           img: img ? img.getAttribute('src') : 'crystals-nature.png',
           imgAlt: h3.textContent,
           category: 'Th\u00e9rapie',
@@ -723,7 +728,7 @@
       if (boutiqueComing) {
         items.push({
           type: 'boutique', slug: 'boutique-coming',
-          pinned: false,
+          pinned: isItemPinned('boutique-coming'),
           img: 'crystals-nature.png',
           imgAlt: 'Boutique Lumi\u00e8re Int\u00e9rieure',
           category: 'Boutique',
@@ -828,22 +833,27 @@
       grid.appendChild(card);
     });
 
-    // Filtres
-    document.querySelectorAll('.nouveautes-filter').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.nouveautes-filter').forEach(function(b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        var filter = btn.getAttribute('data-filter');
-        grid.querySelectorAll('.nouveautes-card').forEach(function(c) {
-          if (filter === 'all' || c.getAttribute('data-type') === filter) {
-            c.classList.remove('hidden');
-          } else {
-            c.classList.add('hidden');
-          }
+    // Filtres (attach once only)
+    if (!window.__nouveautesFiltersInit) {
+      window.__nouveautesFiltersInit = true;
+      document.querySelectorAll('.nouveautes-filter').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.nouveautes-filter').forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          var filter = btn.getAttribute('data-filter');
+          var g = document.getElementById('nouveautes-grid');
+          if (g) g.querySelectorAll('.nouveautes-card').forEach(function(c) {
+            if (filter === 'all' || c.getAttribute('data-type') === filter) {
+              c.classList.remove('hidden');
+            } else {
+              c.classList.add('hidden');
+            }
+          });
         });
       });
-    });
-  })();
+    }
+  };
+  window.__populateNouveautes();
 
   // --- Blog Overlay Logic ---
   var overlay = document.getElementById('blog-article-overlay');
@@ -2733,56 +2743,130 @@
     } catch(e) {}
   })();
 
-  // ─── Pinned badge + reorder for section pages ───
-  (function initPinnedSections() {
-    // Blog section: .blog-grid > .blog-card
-    var blogGrid = document.querySelector('.blog-grid');
-    if (blogGrid) {
-      var pinnedBlogs = blogGrid.querySelectorAll('.blog-card[data-pinned="true"]');
-      pinnedBlogs.forEach(function(card) {
-        var imgDiv = card.querySelector('.blog-card__image');
-        if (imgDiv && !imgDiv.querySelector('.pinned-badge')) {
-          var badge = document.createElement('span');
-          badge.className = 'pinned-badge';
-          badge.textContent = '\ud83d\udccc \u00c9pingl\u00e9';
-          imgDiv.appendChild(badge);
-        }
-        blogGrid.insertBefore(card, blogGrid.firstChild);
-      });
+  // ─── Interactive pin/unpin system with localStorage persistence ───
+  (function initPinnedSystem() {
+    var pinnedItems = JSON.parse(localStorage.getItem('pinned_items') || '[]');
+
+    function slugify(text) {
+      return (text || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
 
-    // Thérapie section: #therapie .services-grid > .service-card
-    var therapieGrid = document.querySelector('#therapie .services-grid');
-    if (therapieGrid) {
-      var pinnedTherapie = therapieGrid.querySelectorAll('.service-card[data-pinned="true"]');
-      pinnedTherapie.forEach(function(card) {
-        var imgDiv = card.querySelector('.service-card__image');
-        if (imgDiv && !imgDiv.querySelector('.pinned-badge')) {
-          var badge = document.createElement('span');
-          badge.className = 'pinned-badge';
-          badge.textContent = '\ud83d\udccc \u00c9pingl\u00e9';
-          imgDiv.appendChild(badge);
-        }
-        therapieGrid.insertBefore(card, therapieGrid.firstChild);
-      });
+    function getCardSlug(card, section) {
+      if (section === 'blog') { var titleEl = card.querySelector('.blog-card__title'); return card.getAttribute('data-article') || slugify(titleEl ? titleEl.textContent : ''); }
+      var h3 = card.querySelector('h3');
+      var prefix = section === 'therapie' ? 'thp-' : (section === 'boutique' ? 'btq-' : 'svc-');
+      return h3 ? prefix + slugify(h3.textContent) : null;
     }
 
-    // Boutique section
-    var boutiqueSection = document.getElementById('boutique');
-    if (boutiqueSection) {
-      var boutiqueGrid = boutiqueSection.querySelector('.services-grid') || boutiqueSection.querySelector('.boutique-grid');
-      if (boutiqueGrid) {
-        var pinnedBoutique = boutiqueGrid.querySelectorAll('[data-pinned="true"]');
-        pinnedBoutique.forEach(function(card) {
-          var imgDiv = card.querySelector('.service-card__image') || card.querySelector('[class*="__image"]');
-          if (imgDiv && !imgDiv.querySelector('.pinned-badge')) {
-            var badge = document.createElement('span');
-            badge.className = 'pinned-badge';
-            badge.textContent = '\ud83d\udccc \u00c9pingl\u00e9';
-            imgDiv.appendChild(badge);
-          }
-          boutiqueGrid.insertBefore(card, boutiqueGrid.firstChild);
-        });
+    function isPinned(slug) {
+      return pinnedItems.indexOf(slug) !== -1;
+    }
+
+    function togglePin(slug) {
+      var idx = pinnedItems.indexOf(slug);
+      if (idx === -1) { pinnedItems.push(slug); }
+      else { pinnedItems.splice(idx, 1); }
+      localStorage.setItem('pinned_items', JSON.stringify(pinnedItems));
+    }
+
+    function createPinButton(slug) {
+      var btn = document.createElement('button');
+      btn.className = 'pin-toggle-btn' + (isPinned(slug) ? ' pin-toggle-btn--active' : '');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('aria-label', 'Épingler');
+      btn.textContent = '\ud83d\udccc';
+      return btn;
+    }
+
+    function createBadge() {
+      var badge = document.createElement('span');
+      badge.className = 'pinned-badge';
+      badge.textContent = '\ud83d\udccc \u00c9pingl\u00e9';
+      return badge;
+    }
+
+    function updateCardVisual(card, slug) {
+      var btn = card.querySelector('.pin-toggle-btn');
+      var badge = card.querySelector('.pinned-badge');
+      if (isPinned(slug)) {
+        if (btn) btn.classList.add('pin-toggle-btn--active');
+        if (!badge) {
+          var imgDiv = card.querySelector('.blog-card__image') || card.querySelector('.service-card__image');
+          if (imgDiv) imgDiv.appendChild(createBadge());
+        }
+      } else {
+        if (btn) btn.classList.remove('pin-toggle-btn--active');
+        if (badge) badge.remove();
+      }
+    }
+
+    function reorderCards(grid, cards, section) {
+      if (!grid || !cards.length) return;
+      var sorted = Array.prototype.slice.call(cards).sort(function(a, b) {
+        var aSlug = getCardSlug(a, section);
+        var bSlug = getCardSlug(b, section);
+        var aP = isPinned(aSlug) ? 0 : 1;
+        var bP = isPinned(bSlug) ? 0 : 1;
+        return aP - bP;
+      });
+      sorted.forEach(function(card) { grid.appendChild(card); });
+    }
+
+    function setupSection(gridSelector, cardSelector, section) {
+      var grid = document.querySelector(gridSelector);
+      if (!grid) return;
+      var cards = grid.querySelectorAll(cardSelector);
+      cards.forEach(function(card) {
+        var slug = getCardSlug(card, section);
+        if (!slug) return;
+
+        var imgDiv = card.querySelector('.blog-card__image') || card.querySelector('.service-card__image');
+        if (!imgDiv) return;
+
+        // Add pin toggle button
+        if (!imgDiv.querySelector('.pin-toggle-btn')) {
+          var btn = createPinButton(slug);
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            togglePin(slug);
+            updateCardVisual(card, slug);
+            reorderCards(grid, grid.querySelectorAll(cardSelector), section);
+            // Refresh nouveautes feed
+            refreshNouveautes();
+          });
+          imgDiv.appendChild(btn);
+        }
+
+        // Set initial visual state
+        updateCardVisual(card, slug);
+      });
+
+      // Initial reorder
+      reorderCards(grid, cards, section);
+    }
+
+    // Setup all sections
+    setupSection('.blog-grid', '.blog-card', 'blog');
+    setupSection('#therapie .services-grid', '.service-card', 'therapie');
+    setupSection('#boutique .services-grid', '.service-card', 'boutique');
+    setupSection('#boutique .boutique-grid', '[class*="-card"]', 'boutique');
+
+    // Expose for use by populateNouveautes
+    window.__pinnedItems = pinnedItems;
+    window.__isPinned = isPinned;
+
+    // Refresh the nouveautes feed
+    function refreshNouveautes() {
+      window.__pinnedItems = pinnedItems;
+      var grid = document.getElementById('nouveautes-grid');
+      if (grid) {
+        grid.innerHTML = '';
+        if (typeof window.__populateNouveautes === 'function') {
+          window.__populateNouveautes();
+        }
       }
     }
   })();
