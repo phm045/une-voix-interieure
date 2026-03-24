@@ -4585,11 +4585,12 @@ textarea.blog-comments__input {
    ======================================== */
 
 /* Container override: admin dashboard needs more width */
-.admin-dashboard {
+.auth-card.admin-dashboard {
   max-width: 100%;
   width: 100%;
   margin: 0 auto;
   padding: var(--space-5) var(--space-4);
+  box-sizing: border-box;
 }
 
 .admin-dashboard[hidden] { display: none; }
