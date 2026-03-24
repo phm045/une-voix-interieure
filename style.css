@@ -4585,7 +4585,7 @@ textarea.blog-comments__input {
    ======================================== */
 
 /* Container override: admin dashboard needs more width */
-.auth-card.admin-dashboard {
+#mon-compte .auth-card.admin-dashboard {
   max-width: 100%;
   width: 100%;
   margin: 0 auto;
