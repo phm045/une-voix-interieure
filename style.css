@@ -150,6 +150,11 @@
   max-width: var(--content-default);
 }
 
+.container--admin-wide {
+  max-width: 1400px;
+  transition: max-width 0.3s ease;
+}
+
 /* ========================================
    SKIP LINK
    ======================================== */
@@ -4580,7 +4585,7 @@ textarea.blog-comments__input {
 
 /* Container override: admin dashboard needs more width */
 .admin-dashboard {
-  max-width: 1100px !important;
+  max-width: 100%;
   width: 100%;
   margin: 0 auto;
   padding: var(--space-5) var(--space-4);
@@ -4700,7 +4705,7 @@ textarea.blog-comments__input {
 /* Stats Grid */
 .admin-dash-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: var(--space-3);
 }
 
@@ -5045,8 +5050,8 @@ textarea.blog-comments__input {
 }
 
 /* When admin is viewing Mon Compte, widen the container */
-#mon-compte .container--narrow:has(.admin-dashboard:not([hidden])) {
-  max-width: 1200px;
+#mon-compte .container--admin-wide {
+  max-width: 1400px;
 }
 
 /* ─── Admin CA Section ─── */

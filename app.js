@@ -1280,9 +1280,12 @@
     if (window.__isAdmin && adminDash) {
       if (authEl) authEl.hidden = true;
       adminDash.hidden = false;
-      // Widen container for admin
+      // Widen container for admin — remove narrow constraint
       var narrowContainer = adminDash.closest('.container--narrow');
-      if (narrowContainer) narrowContainer.style.maxWidth = '1200px';
+      if (narrowContainer) {
+        narrowContainer.classList.remove('container--narrow');
+        narrowContainer.classList.add('container--admin-wide');
+      }
     } else {
       if (adminDash) adminDash.hidden = true;
       if (authEl) authEl.hidden = false;
@@ -1312,8 +1315,11 @@
     if (authEl) authEl.hidden = true;
     if (adminDash) adminDash.hidden = true;
     // Reset container width
-    var narrowContainer = document.querySelector('#mon-compte .container--narrow');
-    if (narrowContainer) narrowContainer.style.maxWidth = '';
+    var adminWide = document.querySelector('#mon-compte .container--admin-wide');
+    if (adminWide) {
+      adminWide.classList.remove('container--admin-wide');
+      adminWide.classList.add('container--narrow');
+    }
   }
 
   // Afficher un message dans un formulaire d'auth
@@ -2910,8 +2916,8 @@
   })();
 
   // ─── Interactive pin/unpin system — admin-only buttons, Supabase persistence ───
-  var ADMIN_EMAIL = 'philippe.medium45@gmail.com';
-  window.__isAdmin = false;
+  // ADMIN_EMAIL already declared at top of file
+  // window.__isAdmin already managed by auth state
 
   // Check if current user is the admin
   async function checkAdmin() {
@@ -3117,26 +3123,42 @@
     if (!isError) setTimeout(function() { el.hidden = true; }, 3000);
   }
 
-  function openModal(id) {
-    var modal = document.getElementById(id);
-    if (modal) modal.hidden = false;
-  }
-
-  function closeModal(id) {
-    var modal = document.getElementById(id);
-    if (modal) {
+  // openModal/closeModal — unified version (extends the base version above)
+  // We override the earlier openModal/closeModal to add admin modal cleanup
+  (function() {
+    var _baseOpenModal = openModal;
+    var _baseCloseModal = closeModal;
+    openModal = function(id) {
+      var modal = document.getElementById(id);
+      if (!modal) return;
+      modal.hidden = false;
+      // If it's an admin modal, no need for body overflow (they're inline)
+      if (!modal.classList.contains('admin-modal')) {
+        document.body.style.overflow = 'hidden';
+      }
+      setTimeout(function () {
+        var firstBtn = modal.querySelector('.btn, button, input, textarea, select');
+        if (firstBtn) firstBtn.focus();
+      }, 100);
+    };
+    closeModal = function(id) {
+      var modal = document.getElementById(id);
+      if (!modal) return;
       modal.hidden = true;
+      if (!modal.classList.contains('admin-modal')) {
+        document.body.style.overflow = '';
+      }
+      // Admin modal cleanup
       var form = modal.querySelector('form');
       if (form) form.reset();
       var msg = modal.querySelector('.admin-modal__message');
       if (msg) msg.hidden = true;
-      // Reset file inputs and hide previews
       var fileInput = modal.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
       var preview = modal.querySelector('[id$="-image-preview"]');
       if (preview) preview.style.display = 'none';
-    }
-  }
+    };
+  })();
 
   // Close modals on backdrop click / close button
   document.querySelectorAll('.admin-modal__backdrop').forEach(function(bd) {
