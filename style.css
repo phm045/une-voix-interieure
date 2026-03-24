@@ -1324,6 +1324,13 @@ section {
   }
 }
 
+@media (min-width: 641px) and (max-width: 1024px) {
+  .blog-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
 /* ========================================
    CONTACT PAGE
    ======================================== */
@@ -4261,4 +4268,16 @@ textarea.blog-comments__input {
   z-index: 2;
   letter-spacing: 0.02em;
   transition: opacity 0.25s ease;
+}
+
+@media (max-width: 768px) {
+  .pin-toggle-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    opacity: 1;
+  }
+  .pinned-badge {
+    top: 3.2rem;
+  }
 }

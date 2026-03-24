@@ -800,9 +800,10 @@
         : '<span>' + item.dateStr + '</span>';
 
       card.innerHTML =
-        '<div class="nouveautes-card__image">' +
+        '<div class="nouveautes-card__image" style="position:relative">' +
           '<span class="nouveautes-card__badge nouveautes-card__badge--' + item.type + '">' + icons[item.type] + ' ' + item.category + '</span>' +
-          (item.pinned ? '<span class="nouveautes-card__pin">\ud83d\udccc</span>' : '') +
+          '<button class="pin-toggle-btn' + (item.pinned ? ' pin-toggle-btn--active' : '') + '" data-pin-slug="' + item.slug + '" data-pin-section="' + item.navTarget + '" title="\u00c9pingler">\ud83d\udccc</button>' +
+          (item.pinned ? '<span class="pinned-badge">\ud83d\udccc \u00c9pingl\u00e9</span>' : '') +
           '<img src="' + item.img + '" alt="' + item.imgAlt + '" width="640" height="400" loading="lazy">' +
         '</div>' +
         '<div class="nouveautes-card__body">' +
@@ -831,6 +832,24 @@
       });
 
       grid.appendChild(card);
+    });
+
+    // Pin toggle listeners for feed cards
+    grid.querySelectorAll('.pin-toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var slug = btn.getAttribute('data-pin-slug');
+        var pinnedItems = JSON.parse(localStorage.getItem('pinned_items') || '[]');
+        var index = pinnedItems.indexOf(slug);
+        if (index > -1) {
+          pinnedItems.splice(index, 1);
+        } else {
+          pinnedItems.push(slug);
+        }
+        localStorage.setItem('pinned_items', JSON.stringify(pinnedItems));
+        // Refresh the feed
+        if (window.__populateNouveautes) window.__populateNouveautes();
+      });
     });
 
     // Filtres (attach once only)
