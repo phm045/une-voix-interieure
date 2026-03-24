@@ -5,6 +5,9 @@
 (function () {
   'use strict';
 
+  // --- Admin email constant (early definition for auth checks) ---
+  var ADMIN_EMAIL = 'philippe.medium45@gmail.com';
+
   // --- Safe storage wrappers (fallback to in-memory when sandboxed) ---
   var _memStore = {};
   var _memSession = {};
@@ -1237,11 +1240,14 @@
       var { data: { session } } = await supabase.auth.getSession();
       if (session && session.user) {
         var meta = session.user.user_metadata || {};
+        window.__isAdmin = !!(session.user.email === ADMIN_EMAIL);
         afficherEtatConnecte({ prenom: meta.prenom || '', nom: meta.nom || '', email: session.user.email });
       } else {
+        window.__isAdmin = false;
         afficherEtatDeconnecte();
       }
     } catch (e) {
+      window.__isAdmin = false;
       afficherEtatDeconnecte();
     }
   }
@@ -1250,8 +1256,11 @@
   supabase.auth.onAuthStateChange(function (event, session) {
     if (session && session.user) {
       var meta = session.user.user_metadata || {};
+      // Check admin status before displaying state
+      window.__isAdmin = !!(session.user.email === ADMIN_EMAIL);
       afficherEtatConnecte({ prenom: meta.prenom || '', nom: meta.nom || '', email: session.user.email });
     } else {
+      window.__isAdmin = false;
       afficherEtatDeconnecte();
     }
   });
@@ -1260,18 +1269,35 @@
     if (navConnexion) navConnexion.hidden = true;
     if (navCompte) {
       navCompte.hidden = false;
-      navCompte.textContent = client.prenom || 'Mon compte';
+      navCompte.textContent = window.__isAdmin ? 'Administration' : (client.prenom || 'Mon compte');
     }
     // Afficher/masquer les vues guest/auth
     var guestEl = document.getElementById('compte-guest');
     var authEl = document.getElementById('compte-auth');
+    var adminDash = document.getElementById('admin-dashboard');
     if (guestEl) guestEl.hidden = true;
-    if (authEl) authEl.hidden = false;
+    // If admin, show admin dashboard instead of regular compte-auth
+    if (window.__isAdmin && adminDash) {
+      if (authEl) authEl.hidden = true;
+      adminDash.hidden = false;
+      // Widen container for admin
+      var narrowContainer = adminDash.closest('.container--narrow');
+      if (narrowContainer) narrowContainer.style.maxWidth = '1200px';
+    } else {
+      if (adminDash) adminDash.hidden = true;
+      if (authEl) authEl.hidden = false;
+    }
     // Mettre à jour l'avatar avec les initiales
     var avatar = document.getElementById('compte-avatar');
     if (avatar) {
       var initiales = ((client.prenom || '').charAt(0) + (client.nom || '').charAt(0)).toUpperCase();
       avatar.textContent = initiales || '?';
+    }
+    // Update admin avatar too
+    var adminAvatar = document.getElementById('admin-avatar');
+    if (adminAvatar) {
+      var adminInitiales = ((client.prenom || '').charAt(0) + (client.nom || '').charAt(0)).toUpperCase();
+      adminAvatar.textContent = adminInitiales || 'AD';
     }
   }
 
@@ -1281,8 +1307,13 @@
     // Afficher/masquer les vues guest/auth
     var guestEl = document.getElementById('compte-guest');
     var authEl = document.getElementById('compte-auth');
+    var adminDash = document.getElementById('admin-dashboard');
     if (guestEl) guestEl.hidden = false;
     if (authEl) authEl.hidden = true;
+    if (adminDash) adminDash.hidden = true;
+    // Reset container width
+    var narrowContainer = document.querySelector('#mon-compte .container--narrow');
+    if (narrowContainer) narrowContainer.style.maxWidth = '';
   }
 
   // Afficher un message dans un formulaire d'auth
@@ -1406,13 +1437,14 @@
           afficherMessage('conn-message', msg, 'erreur');
         } else {
           var meta = data.user.user_metadata || {};
+          window.__isAdmin = !!(data.user.email === ADMIN_EMAIL);
           afficherMessage('conn-message', 'Connexion réussie ! Bonjour, ' + (meta.prenom || '') + '.', 'succes');
           afficherEtatConnecte({ prenom: meta.prenom || '', nom: meta.nom || '', email: data.user.email });
           formConnexion.reset();
           setTimeout(function () {
             history.pushState(null, '', '#mon-compte');
             showPage('mon-compte');
-            chargerProfil();
+            if (!window.__isAdmin) chargerProfil();
           }, 1500);
         }
       } catch (err) {
@@ -1659,11 +1691,15 @@
   showPage = function (pageId) {
     origShowPage(pageId);
     if (pageId === 'mon-compte') {
-      chargerProfil();
-      chargerRDV();
-      chargerCommandes();
-      chargerPaiements();
-      chargerCoupons();
+      if (window.__isAdmin) {
+        chargerDashboardAdmin();
+      } else {
+        chargerProfil();
+        chargerRDV();
+        chargerCommandes();
+        chargerPaiements();
+        chargerCoupons();
+      }
     }
     // Newsletter flottant : visible uniquement sur blog, boutique et services
     var nlFloat = document.getElementById('nl-float');
@@ -3544,6 +3580,847 @@
       chargerCouponsAdmin();
     });
   }
+
+
+  // ========================================
+  // ADMIN DASHBOARD — Full management panel
+  // ========================================
+
+  var _adminDashInitialized = false;
+
+  // --- Admin tab switching ---
+  (function initAdminTabs() {
+    var tabsContainer = document.getElementById('admin-dash-tabs');
+    if (!tabsContainer) return;
+    tabsContainer.addEventListener('click', function(e) {
+      var btn = e.target.closest('.admin-dash-tab');
+      if (!btn) return;
+      var tabId = btn.getAttribute('data-admin-tab');
+      if (!tabId) return;
+      // Deactivate all tabs
+      var allTabs = tabsContainer.querySelectorAll('.admin-dash-tab');
+      for (var i = 0; i < allTabs.length; i++) {
+        allTabs[i].classList.remove('admin-dash-tab--active');
+      }
+      btn.classList.add('admin-dash-tab--active');
+      // Show correct content
+      var allContents = document.querySelectorAll('.admin-tab-content');
+      for (var j = 0; j < allContents.length; j++) {
+        allContents[j].classList.remove('admin-tab-content--active');
+      }
+      var target = document.getElementById('admin-tab-' + tabId);
+      if (target) target.classList.add('admin-tab-content--active');
+      // Load data for the tab
+      if (tabId === 'dashboard') chargerAdminStats();
+      if (tabId === 'blog') chargerAdminBlog();
+      if (tabId === 'boutique') chargerAdminBoutique();
+      if (tabId === 'coupons') chargerAdminCouponsTab();
+      if (tabId === 'commandes') chargerAdminCommandes();
+      if (tabId === 'rdv') chargerAdminRDV();
+      if (tabId === 'clients') chargerAdminClients();
+      if (tabId === 'newsletter') chargerAdminNewsletter();
+    });
+  })();
+
+  // --- Admin dashboard buttons ---
+  (function initAdminButtons() {
+    var btnNewArticle = document.getElementById('admin-btn-new-article');
+    if (btnNewArticle) {
+      btnNewArticle.addEventListener('click', function() { openModal('admin-modal-blog'); });
+    }
+    var btnNewProduct = document.getElementById('admin-btn-new-product');
+    if (btnNewProduct) {
+      btnNewProduct.addEventListener('click', function() { openModal('admin-modal-boutique'); });
+    }
+    var btnNewCoupon = document.getElementById('admin-btn-new-coupon');
+    if (btnNewCoupon) {
+      btnNewCoupon.addEventListener('click', function() {
+        openModal('admin-modal-coupon');
+        chargerCouponsAdmin();
+      });
+    }
+    var btnAdminLogout = document.getElementById('admin-btn-deconnexion');
+    if (btnAdminLogout) {
+      btnAdminLogout.addEventListener('click', async function() {
+        await supabase.auth.signOut();
+        window.__isAdmin = false;
+        afficherEtatDeconnecte();
+        showPage('accueil');
+      });
+    }
+  })();
+
+  // --- Main entry point: load all admin data ---
+  function chargerDashboardAdmin() {
+    if (!window.__isAdmin) return;
+    chargerAdminStats();
+    // Initialize search listeners once
+    if (!_adminDashInitialized) {
+      _adminDashInitialized = true;
+      initAdminSearchListeners();
+    }
+  }
+
+  // --- Search listeners ---
+  function initAdminSearchListeners() {
+    var searchFields = [
+      { id: 'admin-blog-search', loader: chargerAdminBlog },
+      { id: 'admin-boutique-search', loader: chargerAdminBoutique },
+      { id: 'admin-commandes-search', loader: chargerAdminCommandes },
+      { id: 'admin-rdv-search', loader: chargerAdminRDV },
+      { id: 'admin-clients-search', loader: chargerAdminClients }
+    ];
+    for (var i = 0; i < searchFields.length; i++) {
+      (function(field) {
+        var el = document.getElementById(field.id);
+        if (!el) return;
+        var timer = null;
+        el.addEventListener('input', function() {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(function() { field.loader(el.value.trim().toLowerCase()); }, 300);
+        });
+      })(searchFields[i]);
+    }
+  }
+
+  // --- Helper: format date FR ---
+  function formatDateFR(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      var d = new Date(dateStr);
+      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch(e) { return dateStr; }
+  }
+
+  // --- Helper: escape HTML ---
+  function escHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  // ─── 1. DASHBOARD STATS ───
+  async function chargerAdminStats() {
+    try {
+      var result = await supabase.rpc('get_admin_stats');
+      if (result.error) throw result.error;
+      var s = result.data;
+      var el;
+      el = document.getElementById('stat-clients');
+      if (el) el.textContent = (s.nb_clients != null) ? s.nb_clients : '0';
+      el = document.getElementById('stat-commandes');
+      if (el) el.textContent = (s.nb_commandes != null) ? s.nb_commandes : '0';
+      el = document.getElementById('stat-ca');
+      if (el) el.textContent = (s.chiffre_affaires != null) ? parseFloat(s.chiffre_affaires).toFixed(0) + ' \u20ac' : '0 \u20ac';
+      el = document.getElementById('stat-rdv');
+      if (el) el.textContent = (s.nb_rdv != null) ? s.nb_rdv : '0';
+      el = document.getElementById('stat-articles');
+      if (el) el.textContent = (s.nb_articles != null) ? s.nb_articles : '0';
+      el = document.getElementById('stat-produits');
+      if (el) el.textContent = (s.nb_produits != null) ? s.nb_produits : '0';
+      el = document.getElementById('stat-coupons');
+      if (el) el.textContent = (s.nb_coupons_actifs != null) ? s.nb_coupons_actifs : '0';
+      el = document.getElementById('stat-newsletter');
+      if (el) el.textContent = (s.nb_newsletter != null) ? s.nb_newsletter : '0';
+    } catch(e) {
+      // Fallback: try individual queries
+      chargerAdminStatsFallback();
+    }
+  }
+
+  async function chargerAdminStatsFallback() {
+    try {
+      var blogRes = await supabase.from('blog_articles').select('id', { count: 'exact', head: true });
+      var el = document.getElementById('stat-articles');
+      if (el) el.textContent = (blogRes.count != null) ? blogRes.count : '0';
+    } catch(e) {}
+    try {
+      var prodRes = await supabase.from('boutique_products').select('id', { count: 'exact', head: true });
+      var el2 = document.getElementById('stat-produits');
+      if (el2) el2.textContent = (prodRes.count != null) ? prodRes.count : '0';
+    } catch(e) {}
+    try {
+      var coupRes = await supabase.from('coupons').select('id', { count: 'exact', head: true }).eq('actif', true);
+      var el3 = document.getElementById('stat-coupons');
+      if (el3) el3.textContent = (coupRes.count != null) ? coupRes.count : '0';
+    } catch(e) {}
+    try {
+      var cmdRes = await supabase.from('commandes').select('id, montant');
+      var el4 = document.getElementById('stat-commandes');
+      if (el4) el4.textContent = (cmdRes.data) ? cmdRes.data.length : '0';
+      var el5 = document.getElementById('stat-ca');
+      if (el5 && cmdRes.data) {
+        var total = 0;
+        for (var i = 0; i < cmdRes.data.length; i++) {
+          total += parseFloat(cmdRes.data[i].montant) || 0;
+        }
+        el5.textContent = total.toFixed(0) + ' \u20ac';
+      }
+    } catch(e) {}
+    try {
+      var rdvRes = await supabase.from('reservations').select('id', { count: 'exact', head: true });
+      var el6 = document.getElementById('stat-rdv');
+      if (el6) el6.textContent = (rdvRes.count != null) ? rdvRes.count : '0';
+    } catch(e) {}
+  }
+
+  // ─── 2. BLOG MANAGEMENT ───
+  async function chargerAdminBlog(filter) {
+    var container = document.getElementById('admin-blog-table');
+    if (!container) return;
+    try {
+      var result = await supabase.from('blog_articles').select('*').order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+      var data = result.data || [];
+      if (filter) {
+        data = data.filter(function(a) {
+          return (a.title || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (a.category || '').toLowerCase().indexOf(filter) !== -1;
+        });
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun article trouv\u00e9.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--blog">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Image</div>' +
+        '<div class="admin-dash-table__cell">Titre</div>' +
+        '<div class="admin-dash-table__cell">Cat\u00e9gorie</div>' +
+        '<div class="admin-dash-table__cell">Date</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var a = data[i];
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--img" data-label="Image"><img src="' + escHtml(a.image_url || 'hero-voyance.png') + '" alt="" loading="lazy"></div>' +
+          '<div class="admin-dash-table__cell" data-label="Titre">' + escHtml(a.title) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Cat\u00e9gorie"><span class="admin-dash-badge admin-dash-badge--neutral">' + escHtml(a.category) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Date">' + escHtml(a.date_publication || formatDateFR(a.created_at)) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--edit" data-edit-blog="' + escHtml(a.slug) + '">Modifier</button>' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-del-blog="' + escHtml(a.slug) + '">Supprimer</button>' +
+          '</div></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      // Attach handlers
+      var delBtns = container.querySelectorAll('[data-del-blog]');
+      for (var d = 0; d < delBtns.length; d++) {
+        delBtns[d].addEventListener('click', function() {
+          var slug = this.getAttribute('data-del-blog');
+          if (!confirm('Supprimer cet article ?')) return;
+          supabase.from('blog_articles').delete().eq('slug', slug).then(function(res) {
+            if (res.error) { alert('Erreur : ' + res.error.message); return; }
+            chargerAdminBlog();
+            chargerAdminStats();
+          });
+        });
+      }
+      var editBtns = container.querySelectorAll('[data-edit-blog]');
+      for (var e = 0; e < editBtns.length; e++) {
+        editBtns[e].addEventListener('click', function() {
+          var slug = this.getAttribute('data-edit-blog');
+          ouvrirEditBlog(slug);
+        });
+      }
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des articles.</p>';
+    }
+  }
+
+  // Edit blog article using the existing modal
+  function ouvrirEditBlog(slug) {
+    var form = document.getElementById('admin-blog-form');
+    if (!form) return;
+    supabase.from('blog_articles').select('*').eq('slug', slug).single().then(function(result) {
+      if (result.error || !result.data) { alert('Article introuvable.'); return; }
+      var a = result.data;
+      var titleEl = document.querySelector('#admin-modal-blog .admin-modal__title');
+      if (titleEl) titleEl.textContent = 'Modifier l\u2019article';
+      var submitBtn = form.querySelector('.admin-modal__submit');
+      if (submitBtn) submitBtn.textContent = 'Mettre \u00e0 jour';
+      // Fill form fields
+      var fields = { category: a.category, title: a.title, excerpt: a.excerpt, content: a.content, date_publication: a.date_publication };
+      for (var key in fields) {
+        var input = form.querySelector('[name="' + key + '"]');
+        if (input) input.value = fields[key] || '';
+      }
+      var imgSelect = form.querySelector('[name="image_url"]');
+      if (imgSelect) {
+        var opts = imgSelect.options;
+        var found = false;
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].value === a.image_url) { imgSelect.selectedIndex = i; found = true; break; }
+        }
+        if (!found) imgSelect.selectedIndex = 0;
+      }
+      // Set edit mode flag
+      form.setAttribute('data-edit-slug', slug);
+      openModal('admin-modal-blog');
+    });
+  }
+
+  // ─── 3. BOUTIQUE MANAGEMENT ───
+  async function chargerAdminBoutique(filter) {
+    var container = document.getElementById('admin-boutique-table');
+    if (!container) return;
+    try {
+      var result = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+      var data = result.data || [];
+      if (filter) {
+        data = data.filter(function(p) {
+          return (p.name || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (p.category || '').toLowerCase().indexOf(filter) !== -1;
+        });
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun produit trouv\u00e9.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--boutique">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Image</div>' +
+        '<div class="admin-dash-table__cell">Nom</div>' +
+        '<div class="admin-dash-table__cell">Cat\u00e9gorie</div>' +
+        '<div class="admin-dash-table__cell">Prix</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var p = data[i];
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--img" data-label="Image"><img src="' + escHtml(p.image_url || 'crystals-nature.png') + '" alt="" loading="lazy"></div>' +
+          '<div class="admin-dash-table__cell" data-label="Nom">' + escHtml(p.name) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Cat\u00e9gorie"><span class="admin-dash-badge admin-dash-badge--neutral">' + escHtml(p.category) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Prix">' + parseFloat(p.price).toFixed(2) + ' \u20ac</div>' +
+          '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--edit" data-edit-prod="' + escHtml(p.slug) + '">Modifier</button>' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-del-prod="' + escHtml(p.slug) + '">Supprimer</button>' +
+          '</div></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      // Attach handlers
+      var delBtns = container.querySelectorAll('[data-del-prod]');
+      for (var d = 0; d < delBtns.length; d++) {
+        delBtns[d].addEventListener('click', function() {
+          var slug = this.getAttribute('data-del-prod');
+          if (!confirm('Supprimer ce produit ?')) return;
+          supabase.from('boutique_products').delete().eq('slug', slug).then(function(res) {
+            if (res.error) { alert('Erreur : ' + res.error.message); return; }
+            chargerAdminBoutique();
+            chargerAdminStats();
+          });
+        });
+      }
+      var editBtns = container.querySelectorAll('[data-edit-prod]');
+      for (var e = 0; e < editBtns.length; e++) {
+        editBtns[e].addEventListener('click', function() {
+          var slug = this.getAttribute('data-edit-prod');
+          ouvrirEditProduit(slug);
+        });
+      }
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des produits.</p>';
+    }
+  }
+
+  // Edit product using the existing modal
+  function ouvrirEditProduit(slug) {
+    var form = document.getElementById('admin-boutique-form');
+    if (!form) return;
+    supabase.from('boutique_products').select('*').eq('slug', slug).single().then(function(result) {
+      if (result.error || !result.data) { alert('Produit introuvable.'); return; }
+      var p = result.data;
+      var titleEl = document.querySelector('#admin-modal-boutique .admin-modal__title');
+      if (titleEl) titleEl.textContent = 'Modifier le produit';
+      var submitBtn = form.querySelector('.admin-modal__submit');
+      if (submitBtn) submitBtn.textContent = 'Mettre \u00e0 jour';
+      // Fill form fields
+      var fields = { name: p.name, description: p.description, price: p.price, category: p.category };
+      for (var key in fields) {
+        var input = form.querySelector('[name="' + key + '"]');
+        if (input) input.value = fields[key] || '';
+      }
+      var imgSelect = form.querySelector('[name="image_url"]');
+      if (imgSelect) {
+        var opts = imgSelect.options;
+        var found = false;
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].value === p.image_url) { imgSelect.selectedIndex = i; found = true; break; }
+        }
+        if (!found) imgSelect.selectedIndex = 0;
+      }
+      form.setAttribute('data-edit-slug', slug);
+      openModal('admin-modal-boutique');
+    });
+  }
+
+  // ─── 4. COUPONS MANAGEMENT (dashboard tab) ───
+  async function chargerAdminCouponsTab() {
+    var container = document.getElementById('admin-coupons-table');
+    if (!container) return;
+    try {
+      var result = await supabase.from('coupons').select('*').order('date_creation', { ascending: false });
+      if (result.error) throw result.error;
+      var data = result.data || [];
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun coupon. Cr\u00e9ez-en un !</p>';
+        return;
+      }
+      var scopeLabels = { 'services_boutique': 'Services + Boutique', 'services': 'Services', 'boutique': 'Boutique' };
+      var html = '<div class="admin-dash-table--coupons">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Code</div>' +
+        '<div class="admin-dash-table__cell">Description</div>' +
+        '<div class="admin-dash-table__cell">R\u00e9duction</div>' +
+        '<div class="admin-dash-table__cell">Utilisation</div>' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var c = data[i];
+        var isExpired = c.valide_jusqu_au && new Date(c.valide_jusqu_au) < new Date();
+        var isMaxed = c.usage_max && c.usage_actuel >= c.usage_max;
+        var statusClass = (!c.actif || isExpired || isMaxed) ? 'danger' : 'success';
+        var statusText = !c.actif ? 'D\u00e9sactiv\u00e9' : (isExpired ? 'Expir\u00e9' : (isMaxed ? 'Plein' : 'Actif'));
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell" data-label="Code" style="color:rgba(212,165,116,1);font-weight:600">' + escHtml(c.code) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Description">' + escHtml(c.description) + '<br><span style="font-size:0.72rem;color:#999">' + (scopeLabels[c.applicable_a] || '—') + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="R\u00e9duction">-' + c.reduction_pourcent + '%</div>' +
+          '<div class="admin-dash-table__cell" data-label="Utilisation">' + (c.usage_actuel || 0) + ' / ' + (c.usage_max || '\u221e') + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Statut"><span class="admin-dash-badge admin-dash-badge--' + statusClass + '">' + statusText + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
+            (c.actif
+              ? '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-toggle-coupon="' + c.id + '" data-coupon-action="deactivate">D\u00e9sactiver</button>'
+              : '<button class="admin-dash-btn-sm admin-dash-btn-sm--success" data-toggle-coupon="' + c.id + '" data-coupon-action="activate">Activer</button>'
+            ) +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-del-coupon="' + c.id + '">Supprimer</button>' +
+          '</div></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      // Attach toggle handlers
+      var toggleBtns = container.querySelectorAll('[data-toggle-coupon]');
+      for (var t = 0; t < toggleBtns.length; t++) {
+        toggleBtns[t].addEventListener('click', function() {
+          var couponId = this.getAttribute('data-toggle-coupon');
+          var action = this.getAttribute('data-coupon-action');
+          var newVal = (action === 'activate');
+          supabase.from('coupons').update({ actif: newVal }).eq('id', couponId).then(function() {
+            chargerAdminCouponsTab();
+            chargerAdminStats();
+          });
+        });
+      }
+      var delBtns = container.querySelectorAll('[data-del-coupon]');
+      for (var d = 0; d < delBtns.length; d++) {
+        delBtns[d].addEventListener('click', function() {
+          var couponId = this.getAttribute('data-del-coupon');
+          if (!confirm('Supprimer ce coupon d\u00e9finitivement ?')) return;
+          supabase.from('coupons_utilises').delete().eq('coupon_id', couponId).then(function() {
+            supabase.from('coupons').delete().eq('id', couponId).then(function() {
+              chargerAdminCouponsTab();
+              chargerAdminStats();
+            });
+          });
+        });
+      }
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des coupons.</p>';
+    }
+  }
+
+  // ─── 5. COMMANDES MANAGEMENT ───
+  async function chargerAdminCommandes(filter) {
+    var container = document.getElementById('admin-commandes-table');
+    if (!container) return;
+    try {
+      // Try RPC first (includes user emails)
+      var result = await supabase.rpc('get_admin_commandes');
+      var data;
+      if (result.error || !result.data) {
+        // Fallback: direct query
+        var fallback = await supabase.from('commandes').select('*').order('date_creation', { ascending: false });
+        data = fallback.data || [];
+      } else {
+        data = result.data || [];
+      }
+      if (filter) {
+        data = data.filter(function(c) {
+          return (c.user_email || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (c.service || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (c.statut || '').toLowerCase().indexOf(filter) !== -1;
+        });
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucune commande trouv\u00e9e.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--commandes">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Client</div>' +
+        '<div class="admin-dash-table__cell">Service</div>' +
+        '<div class="admin-dash-table__cell">Montant</div>' +
+        '<div class="admin-dash-table__cell">Paiement</div>' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var c = data[i];
+        var email = c.user_email || '(inconnu)';
+        var prenom = c.user_prenom || '';
+        var statusClass = (c.statut === 'pay\u00e9' || c.statut === 'paye') ? 'success' : ((c.statut === 'rembours\u00e9') ? 'danger' : 'warning');
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Client">' + escHtml(prenom) + '<br><span style="font-size:0.75rem">' + escHtml(email) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Service">' + escHtml(c.service) + '<br><span style="font-size:0.72rem;color:#999">' + formatDateFR(c.date_creation) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Montant" style="font-weight:600">' + parseFloat(c.montant || 0).toFixed(2) + ' \u20ac</div>' +
+          '<div class="admin-dash-table__cell" data-label="Paiement">' + escHtml(c.methode_paiement || '—') + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Statut"><span class="admin-dash-badge admin-dash-badge--' + statusClass + '">' + escHtml(c.statut) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
+            ((c.statut !== 'rembours\u00e9') ? '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-refund-cmd="' + c.id + '">Rembourser</button>' : '') +
+          '</div></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      // Attach refund handlers
+      var refundBtns = container.querySelectorAll('[data-refund-cmd]');
+      for (var r = 0; r < refundBtns.length; r++) {
+        refundBtns[r].addEventListener('click', function() {
+          var cmdId = this.getAttribute('data-refund-cmd');
+          if (!confirm('Marquer cette commande comme rembours\u00e9e ?')) return;
+          supabase.from('commandes').update({ statut: 'rembours\u00e9' }).eq('id', cmdId).then(function(res) {
+            if (res.error) { alert('Erreur : ' + res.error.message); return; }
+            chargerAdminCommandes();
+            chargerAdminStats();
+          });
+        });
+      }
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des commandes.</p>';
+    }
+  }
+
+  // ─── 6. RDV / RESERVATIONS MANAGEMENT ───
+  async function chargerAdminRDV(filter) {
+    var container = document.getElementById('admin-rdv-table');
+    if (!container) return;
+    try {
+      var result = await supabase.rpc('get_admin_reservations');
+      var data;
+      if (result.error || !result.data) {
+        var fallback = await supabase.from('reservations').select('*').order('date_rdv', { ascending: false });
+        data = fallback.data || [];
+      } else {
+        data = result.data || [];
+      }
+      if (filter) {
+        data = data.filter(function(r) {
+          return (r.user_email || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (r.service || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (r.statut || '').toLowerCase().indexOf(filter) !== -1;
+        });
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun rendez-vous trouv\u00e9.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--rdv">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Client</div>' +
+        '<div class="admin-dash-table__cell">Service</div>' +
+        '<div class="admin-dash-table__cell">Date RDV</div>' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var r = data[i];
+        var email = r.user_email || '(inconnu)';
+        var statusClass = (r.statut === 'termin\u00e9') ? 'success' : ((r.statut === 'annul\u00e9') ? 'danger' : 'warning');
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Client">' + escHtml(r.user_prenom || '') + '<br><span style="font-size:0.75rem">' + escHtml(email) + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Service">' + escHtml(r.service || '—') + (r.notes ? '<br><span style="font-size:0.72rem;color:#999">' + escHtml(r.notes) + '</span>' : '') + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Date RDV">' + formatDateFR(r.date_rdv) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Statut"><span class="admin-dash-badge admin-dash-badge--' + statusClass + '">' + escHtml(r.statut || '\u00e0 venir') + '</span></div>' +
+          '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--success" data-rdv-status="' + r.id + '" data-rdv-val="termin\u00e9">Termin\u00e9</button>' +
+            '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-rdv-status="' + r.id + '" data-rdv-val="annul\u00e9">Annul\u00e9</button>' +
+          '</div></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      // Attach status change handlers
+      var statusBtns = container.querySelectorAll('[data-rdv-status]');
+      for (var s = 0; s < statusBtns.length; s++) {
+        statusBtns[s].addEventListener('click', function() {
+          var rdvId = this.getAttribute('data-rdv-status');
+          var newStatus = this.getAttribute('data-rdv-val');
+          supabase.from('reservations').update({ statut: newStatus }).eq('id', rdvId).then(function(res) {
+            if (res.error) { alert('Erreur : ' + res.error.message); return; }
+            chargerAdminRDV();
+          });
+        });
+      }
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des RDV.</p>';
+    }
+  }
+
+  // ─── 7. CLIENTS MANAGEMENT ───
+  async function chargerAdminClients(filter) {
+    var container = document.getElementById('admin-clients-table');
+    if (!container) return;
+    try {
+      var result = await supabase.rpc('get_admin_clients');
+      var data;
+      if (result.error || !result.data) {
+        // Fallback: get unique users from commandes
+        var cmdRes = await supabase.from('commandes').select('user_id');
+        data = [];
+        if (cmdRes.data) {
+          var seen = {};
+          for (var k = 0; k < cmdRes.data.length; k++) {
+            var uid = cmdRes.data[k].user_id;
+            if (!seen[uid]) {
+              seen[uid] = true;
+              data.push({ id: uid, email: uid, prenom: '', nom: '', nb_commandes: 0, total_depense: 0 });
+            }
+          }
+        }
+      } else {
+        data = result.data || [];
+      }
+      if (filter) {
+        data = data.filter(function(c) {
+          return (c.email || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (c.prenom || '').toLowerCase().indexOf(filter) !== -1 ||
+                 (c.nom || '').toLowerCase().indexOf(filter) !== -1;
+        });
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun client trouv\u00e9.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--clients">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Client</div>' +
+        '<div class="admin-dash-table__cell">Email</div>' +
+        '<div class="admin-dash-table__cell">Inscrit le</div>' +
+        '<div class="admin-dash-table__cell">Commandes</div>' +
+        '<div class="admin-dash-table__cell">Total</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var c = data[i];
+        var fullName = ((c.prenom || '') + ' ' + (c.nom || '')).trim() || '—';
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell" data-label="Client">' + escHtml(fullName) + '</div>' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Email">' + escHtml(c.email || '—') + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Inscrit le">' + formatDateFR(c.date_inscription) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Commandes">' + (c.nb_commandes || 0) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Total" style="font-weight:600">' + parseFloat(c.total_depense || 0).toFixed(2) + ' \u20ac</div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des clients.</p>';
+    }
+  }
+
+  // ─── 8. NEWSLETTER MANAGEMENT ───
+  async function chargerAdminNewsletter() {
+    var container = document.getElementById('admin-newsletter-table');
+    if (!container) return;
+    try {
+      var result = await supabase.rpc('get_admin_newsletter');
+      var data;
+      if (result.error || !result.data) {
+        // Try direct query
+        var fallback = await supabase.from('newsletter_subscribers').select('*').order('created_at', { ascending: false });
+        data = (fallback.error) ? [] : (fallback.data || []);
+      } else {
+        data = result.data || [];
+      }
+      if (data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun abonn\u00e9 \u00e0 la newsletter pour le moment.</p>';
+        return;
+      }
+      var html = '<div class="admin-dash-table--newsletter">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Pr\u00e9nom</div>' +
+        '<div class="admin-dash-table__cell">Email</div>' +
+        '<div class="admin-dash-table__cell">Date inscription</div>' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
+        '</div>';
+      for (var i = 0; i < data.length; i++) {
+        var s = data[i];
+        var statusClass = s.actif ? 'success' : 'danger';
+        var statusText = s.actif ? 'Actif' : 'D\u00e9sinscrit';
+        html += '<div class="admin-dash-table__row">' +
+          '<div class="admin-dash-table__cell" data-label="Pr\u00e9nom">' + escHtml(s.prenom || '—') + '</div>' +
+          '<div class="admin-dash-table__cell admin-dash-table__cell--email" data-label="Email">' + escHtml(s.email) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Inscrit le">' + formatDateFR(s.created_at) + '</div>' +
+          '<div class="admin-dash-table__cell" data-label="Statut"><span class="admin-dash-badge admin-dash-badge--' + statusClass + '">' + statusText + '</span></div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    } catch(e) {
+      container.innerHTML = '<p class="admin-dash-empty">Table newsletter non disponible. Ex\u00e9cutez la migration SQL.</p>';
+    }
+  }
+
+  // ─── Override blog form submit to handle edit mode ───
+  var origBlogForm = document.getElementById('admin-blog-form');
+  if (origBlogForm) {
+    // Intercept submit to check for edit mode
+    var origSubmitHandlers = origBlogForm.onsubmit;
+    origBlogForm.addEventListener('submit', function(e) {
+      var editSlug = origBlogForm.getAttribute('data-edit-slug');
+      if (editSlug) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var fd = new FormData(origBlogForm);
+        var imageUrl = fd.get('image_url');
+        var blogImageFile = document.getElementById('admin-blog-image-file');
+
+        (async function() {
+          if (blogImageFile && blogImageFile.files[0]) {
+            var file = blogImageFile.files[0];
+            var ext = file.name.split('.').pop();
+            var path = 'blog/' + editSlug + '-' + Date.now() + '.' + ext;
+            try {
+              imageUrl = await uploadImage(file, 'images', path);
+            } catch(err) {
+              if (!imageUrl) imageUrl = 'blog-journal.png';
+            }
+          }
+
+          var updateData = {
+            category: fd.get('category').trim(),
+            title: fd.get('title').trim(),
+            excerpt: fd.get('excerpt').trim(),
+            content: fd.get('content').trim(),
+            image_url: imageUrl || 'blog-journal.png',
+            date_publication: fd.get('date_publication').trim()
+          };
+
+          var res = await supabase.from('blog_articles').update(updateData).eq('slug', editSlug);
+          if (res.error) {
+            showAdminMsg('admin-blog-msg', 'Erreur : ' + res.error.message, true);
+            return;
+          }
+          showAdminMsg('admin-blog-msg', 'Article mis \u00e0 jour !', false);
+          origBlogForm.removeAttribute('data-edit-slug');
+          setTimeout(function() {
+            closeModal('admin-modal-blog');
+            chargerAdminBlog();
+            // Reset modal title
+            var titleEl = document.querySelector('#admin-modal-blog .admin-modal__title');
+            if (titleEl) titleEl.textContent = 'Nouvel article';
+            var submitBtn = origBlogForm.querySelector('.admin-modal__submit');
+            if (submitBtn) submitBtn.textContent = 'Publier l\u2019article';
+          }, 1200);
+        })();
+      }
+    }, true); // capture phase to intercept before existing handler
+  }
+
+  // ─── Override boutique form submit to handle edit mode ───
+  var origBoutiqueForm = document.getElementById('admin-boutique-form');
+  if (origBoutiqueForm) {
+    origBoutiqueForm.addEventListener('submit', function(e) {
+      var editSlug = origBoutiqueForm.getAttribute('data-edit-slug');
+      if (editSlug) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var fd = new FormData(origBoutiqueForm);
+        var imageUrl = fd.get('image_url');
+        var boutiqueImageFile = document.getElementById('admin-boutique-image-file');
+
+        (async function() {
+          if (boutiqueImageFile && boutiqueImageFile.files[0]) {
+            var file = boutiqueImageFile.files[0];
+            var ext = file.name.split('.').pop();
+            var path = 'boutique/' + editSlug + '-' + Date.now() + '.' + ext;
+            try {
+              imageUrl = await uploadImage(file, 'images', path);
+            } catch(err) {
+              if (!imageUrl) imageUrl = 'crystals-nature.png';
+            }
+          }
+
+          var updateData = {
+            name: fd.get('name').trim(),
+            description: fd.get('description').trim(),
+            price: parseFloat(fd.get('price')),
+            category: fd.get('category').trim(),
+            image_url: imageUrl || 'crystals-nature.png'
+          };
+
+          var res = await supabase.from('boutique_products').update(updateData).eq('slug', editSlug);
+          if (res.error) {
+            showAdminMsg('admin-boutique-msg', 'Erreur : ' + res.error.message, true);
+            return;
+          }
+          showAdminMsg('admin-boutique-msg', 'Produit mis \u00e0 jour !', false);
+          origBoutiqueForm.removeAttribute('data-edit-slug');
+          setTimeout(function() {
+            closeModal('admin-modal-boutique');
+            chargerAdminBoutique();
+            // Reset modal title
+            var titleEl = document.querySelector('#admin-modal-boutique .admin-modal__title');
+            if (titleEl) titleEl.textContent = 'Nouveau produit';
+            var submitBtn = origBoutiqueForm.querySelector('.admin-modal__submit');
+            if (submitBtn) submitBtn.textContent = 'Publier le produit';
+          }, 1200);
+        })();
+      }
+    }, true);
+  }
+
+  // ─── Reset modal titles when closing ───
+  (function resetModalTitlesOnClose() {
+    var blogModal = document.getElementById('admin-modal-blog');
+    if (blogModal) {
+      var observer = new MutationObserver(function(mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].attributeName === 'hidden' && blogModal.hidden) {
+            var form = document.getElementById('admin-blog-form');
+            if (form) form.removeAttribute('data-edit-slug');
+            var titleEl = blogModal.querySelector('.admin-modal__title');
+            if (titleEl) titleEl.textContent = 'Nouvel article';
+            var submitBtn = blogModal.querySelector('.admin-modal__submit');
+            if (submitBtn) submitBtn.textContent = 'Publier l\u2019article';
+          }
+        }
+      });
+      observer.observe(blogModal, { attributes: true });
+    }
+    var boutiqueModal = document.getElementById('admin-modal-boutique');
+    if (boutiqueModal) {
+      var observer2 = new MutationObserver(function(mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].attributeName === 'hidden' && boutiqueModal.hidden) {
+            var form = document.getElementById('admin-boutique-form');
+            if (form) form.removeAttribute('data-edit-slug');
+            var titleEl = boutiqueModal.querySelector('.admin-modal__title');
+            if (titleEl) titleEl.textContent = 'Nouveau produit';
+            var submitBtn = boutiqueModal.querySelector('.admin-modal__submit');
+            if (submitBtn) submitBtn.textContent = 'Publier le produit';
+          }
+        }
+      });
+      observer2.observe(boutiqueModal, { attributes: true });
+    }
+  })();
 
 
 })();
