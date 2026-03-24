@@ -4314,6 +4314,16 @@ textarea.blog-comments__input {
   min-height: 200px;
   margin-bottom: 1.5rem;
 }
+.admin-add-btn--coupon {
+  min-height: auto;
+  margin-bottom: 1.5rem;
+  background: rgba(212, 165, 116, 0.1);
+  border-color: rgba(212, 165, 116, 0.4);
+}
+.admin-add-btn--coupon:hover {
+  background: rgba(212, 165, 116, 0.2);
+  border-color: rgba(212, 165, 116, 0.6);
+}
 
 /* ─── Admin Modal ─── */
 .admin-modal {

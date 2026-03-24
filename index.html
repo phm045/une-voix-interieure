@@ -2261,6 +2261,49 @@ Cal("init", "consultations", { origin: "https://app.cal.eu" });
 </div>
 
 <!-- Admin: Boutique product creation modal -->
+<div id="admin-modal-coupon" class="admin-modal" hidden>
+  <div class="admin-modal__backdrop"></div>
+  <div class="admin-modal__content">
+    <button class="admin-modal__close" aria-label="Fermer">&times;</button>
+    <h2 class="admin-modal__title">Créer un coupon</h2>
+    <form class="admin-modal__form" id="admin-coupon-form">
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Code coupon</label>
+        <input type="text" class="admin-modal__input" name="code" placeholder="Ex : PROMO20" required style="text-transform:uppercase">
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Description</label>
+        <input type="text" class="admin-modal__input" name="description" placeholder="Ex : -20% sur les services et la boutique" required>
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Réduction (%)</label>
+        <input type="number" class="admin-modal__input" name="reduction_pourcent" min="10" max="40" step="1" placeholder="10 à 40" required>
+        <p style="color:#999;font-size:0.8rem;margin:0.2rem 0 0">Minimum 10%, maximum 40%</p>
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Applicable à</label>
+        <select class="admin-modal__select" name="applicable_a" required>
+          <option value="services_boutique">Services + Boutique (thérapie exclue)</option>
+          <option value="services">Services uniquement</option>
+          <option value="boutique">Boutique uniquement</option>
+        </select>
+        <p style="color:#999;font-size:0.8rem;margin:0.2rem 0 0">Les thérapies ne sont jamais incluses dans les promotions.</p>
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Date d’expiration (optionnel)</label>
+        <input type="date" class="admin-modal__input" name="valide_jusqu_au">
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Nombre max d’utilisations</label>
+        <input type="number" class="admin-modal__input" name="usage_max" min="1" value="50" placeholder="50">
+      </div>
+      <div class="admin-modal__message" id="admin-coupon-msg" hidden></div>
+      <button type="submit" class="btn btn--primary admin-modal__submit">Créer le coupon</button>
+    </form>
+    <div id="admin-coupons-list" style="margin-top:1.5rem"></div>
+  </div>
+</div>
+
 <div id="admin-modal-boutique" class="admin-modal" hidden>
   <div class="admin-modal__backdrop"></div>
   <div class="admin-modal__content">

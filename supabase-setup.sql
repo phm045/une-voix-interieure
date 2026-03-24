@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS coupons (
   description TEXT NOT NULL,
   reduction_pourcent INTEGER,
   reduction_montant DECIMAL(10,2),
+  applicable_a TEXT NOT NULL DEFAULT 'services_boutique',
   valide_jusqu_au TIMESTAMPTZ,
   usage_max INTEGER DEFAULT 1,
   usage_actuel INTEGER DEFAULT 0,
@@ -56,6 +57,12 @@ CREATE POLICY "Les clients créent leurs commandes"
 CREATE POLICY "Tout le monde peut lire les coupons actifs"
   ON coupons FOR SELECT
   USING (actif = true);
+
+-- L'admin peut tout faire sur les coupons
+CREATE POLICY "Admin gere les coupons"
+  ON coupons FOR ALL
+  USING (auth.jwt() ->> 'email' = 'philippe.medium45@gmail.com')
+  WITH CHECK (auth.jwt() ->> 'email' = 'philippe.medium45@gmail.com');
 
 CREATE POLICY "Les clients voient leurs coupons utilisés"
   ON coupons_utilises FOR SELECT

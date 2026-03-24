@@ -1849,10 +1849,12 @@
         var reduction = c.reduction_pourcent
           ? '-' + c.reduction_pourcent + '%'
           : '-' + Number(c.reduction_montant).toFixed(2) + ' \u20ac';
+        var scopeLabels = { 'services': 'Services', 'boutique': 'Boutique', 'services_boutique': 'Services + Boutique' };
+        var scopeLabel = scopeLabels[c.applicable_a] || '';
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
             '<span class="compte-liste__coupon-code">' + c.code + '</span>' +
-            '<span class="compte-liste__coupon-desc">' + c.description + '</span>' +
+            '<span class="compte-liste__coupon-desc">' + c.description + (scopeLabel ? ' \u2022 ' + scopeLabel : '') + '</span>' +
             '<span class="compte-liste__date">Utilis\u00e9 le ' + date + '</span>' +
           '</div>' +
           '<span class="compte-liste__statut compte-liste__statut--actif">' + reduction + '</span>' +
@@ -1922,7 +1924,9 @@
               var red = coupon.reduction_pourcent
                 ? '-' + coupon.reduction_pourcent + '%'
                 : '-' + Number(coupon.reduction_montant).toFixed(2) + ' \u20ac';
-              afficherMessage('coupon-message', 'Coupon appliqu\u00e9 ! ' + red + ' sur votre prochaine consultation.', 'succes');
+              var scopeMsg = { 'services': 'les services', 'boutique': 'la boutique', 'services_boutique': 'les services et la boutique' };
+              var scopeText = scopeMsg[coupon.applicable_a] || 'les services et la boutique';
+              afficherMessage('coupon-message', 'Coupon appliqu\u00e9 ! ' + red + ' sur ' + scopeText + ' (hors th\u00e9rapie).', 'succes');
               input.value = '';
               chargerCoupons();
             }
@@ -3194,6 +3198,23 @@
         addProdBtn.addEventListener('click', function() { openModal('admin-modal-boutique'); });
         prodGrid.parentNode.insertBefore(addProdBtn, prodGrid);
       }
+
+      // Coupon management button - add in boutique section
+      var boutiqueSection = document.querySelector('[data-page="boutique"]') || (prodGrid && prodGrid.closest('section'));
+      if (boutiqueSection) {
+        var addCouponBtn = document.createElement('div');
+        addCouponBtn.className = 'admin-add-btn admin-add-btn--coupon';
+        addCouponBtn.innerHTML = '<span class="admin-add-btn__icon">🎟</span><span>Gérer les coupons</span>';
+        addCouponBtn.addEventListener('click', function() {
+          openModal('admin-modal-coupon');
+          chargerCouponsAdmin();
+        });
+        if (prodGrid && prodGrid.parentNode) {
+          prodGrid.parentNode.insertBefore(addCouponBtn, prodGrid);
+        } else {
+          boutiqueSection.appendChild(addCouponBtn);
+        }
+      }
     }
 
     // Refresh feed to include dynamic items
@@ -3399,5 +3420,130 @@
       setTimeout(function() { closeModal('admin-modal-boutique'); }, 1500);
     });
   }
+
+
+  // ─── Admin coupon management system ───
+
+  // Load coupons list for admin panel
+  async function chargerCouponsAdmin() {
+    var container = document.getElementById('admin-coupons-list');
+    if (!container) return;
+
+    try {
+      var { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .order('date_creation', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        container.innerHTML = '<p style="color:#999;text-align:center;font-size:0.85rem">Aucun coupon existant.</p>';
+        return;
+      }
+
+      var scopeLabels = {
+        'services_boutique': 'Services + Boutique',
+        'services': 'Services',
+        'boutique': 'Boutique'
+      };
+
+      container.innerHTML = '<h3 style="font-size:1rem;margin-bottom:0.75rem;color:var(--text-primary,#fff)">Coupons existants</h3>' +
+        '<div style="display:flex;flex-direction:column;gap:0.5rem">' +
+        data.map(function(c) {
+          var scope = scopeLabels[c.applicable_a] || 'Services + Boutique';
+          var expiry = c.valide_jusqu_au
+            ? new Date(c.valide_jusqu_au).toLocaleDateString('fr-FR')
+            : 'Illimit\u00e9';
+          var isExpired = c.valide_jusqu_au && new Date(c.valide_jusqu_au) < new Date();
+          var isMaxed = c.usage_max && c.usage_actuel >= c.usage_max;
+          var statusColor = (!c.actif || isExpired || isMaxed) ? '#e74c3c' : '#27ae60';
+          var statusText = !c.actif ? 'D\u00e9sactiv\u00e9' : (isExpired ? 'Expir\u00e9' : (isMaxed ? 'Limit reached' : 'Actif'));
+
+          return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">' +
+            '<div>' +
+              '<strong style="color:var(--accent,#d4a574);font-size:0.95rem">' + c.code + '</strong>' +
+              '<span style="margin-left:0.5rem;color:' + statusColor + ';font-size:0.75rem;font-weight:600">\u25cf ' + statusText + '</span>' +
+              '<br><span style="color:#bbb;font-size:0.8rem">' + c.description + '</span>' +
+              '<br><span style="color:#999;font-size:0.75rem">-' + c.reduction_pourcent + '% \u2022 ' + scope + ' \u2022 Expire : ' + expiry + ' \u2022 Utilis\u00e9 : ' + (c.usage_actuel || 0) + '/' + (c.usage_max || '\u221e') + '</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:0.3rem">' +
+              (c.actif
+                ? '<button class="admin-coupon-toggle" data-coupon-id="' + c.id + '" data-action="deactivate" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:0.3rem 0.6rem;font-size:0.75rem;cursor:pointer" title="D\u00e9sactiver">D\u00e9sactiver</button>'
+                : '<button class="admin-coupon-toggle" data-coupon-id="' + c.id + '" data-action="activate" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:0.3rem 0.6rem;font-size:0.75rem;cursor:pointer" title="R\u00e9activer">R\u00e9activer</button>'
+              ) +
+              '<button class="admin-coupon-toggle" data-coupon-id="' + c.id + '" data-action="delete" style="background:#333;color:#e74c3c;border:1px solid #e74c3c;border-radius:4px;padding:0.3rem 0.6rem;font-size:0.75rem;cursor:pointer" title="Supprimer">\ud83d\uddd1\ufe0f</button>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+        '</div>';
+
+      // Attach toggle/delete handlers
+      container.querySelectorAll('.admin-coupon-toggle').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var couponId = this.getAttribute('data-coupon-id');
+          var action = this.getAttribute('data-action');
+
+          if (action === 'delete') {
+            if (!confirm('Supprimer ce coupon d\u00e9finitivement ?')) return;
+            await supabase.from('coupons_utilises').delete().eq('coupon_id', couponId);
+            await supabase.from('coupons').delete().eq('id', couponId);
+          } else if (action === 'deactivate') {
+            await supabase.from('coupons').update({ actif: false }).eq('id', couponId);
+          } else if (action === 'activate') {
+            await supabase.from('coupons').update({ actif: true }).eq('id', couponId);
+          }
+
+          chargerCouponsAdmin();
+        });
+      });
+    } catch(e) {
+      container.innerHTML = '<p style="color:#e74c3c;font-size:0.85rem">Erreur de chargement des coupons.</p>';
+    }
+  }
+
+  // --- Coupon creation form submit ---
+  var couponForm = document.getElementById('admin-coupon-form');
+  if (couponForm) {
+    couponForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(couponForm);
+      var code = fd.get('code').trim().toUpperCase();
+      var reduction = parseInt(fd.get('reduction_pourcent'), 10);
+
+      // Validate 10-40%
+      if (reduction < 10 || reduction > 40) {
+        showAdminMsg('admin-coupon-msg', 'La r\u00e9duction doit \u00eatre entre 10% et 40%.', true);
+        return;
+      }
+
+      var data = {
+        code: code,
+        description: fd.get('description').trim(),
+        reduction_pourcent: reduction,
+        applicable_a: fd.get('applicable_a'),
+        usage_max: parseInt(fd.get('usage_max'), 10) || 50,
+        actif: true
+      };
+
+      var expiryVal = fd.get('valide_jusqu_au');
+      if (expiryVal) {
+        data.valide_jusqu_au = new Date(expiryVal).toISOString();
+      }
+
+      var result = await supabase.from('coupons').insert([data]);
+      if (result.error) {
+        if (result.error.message.indexOf('unique') !== -1 || result.error.message.indexOf('duplicate') !== -1) {
+          showAdminMsg('admin-coupon-msg', 'Ce code coupon existe d\u00e9j\u00e0.', true);
+        } else {
+          showAdminMsg('admin-coupon-msg', 'Erreur : ' + result.error.message, true);
+        }
+        return;
+      }
+
+      showAdminMsg('admin-coupon-msg', 'Coupon ' + code + ' cr\u00e9\u00e9 avec succ\u00e8s !', false);
+      couponForm.reset();
+      chargerCouponsAdmin();
+    });
+  }
+
 
 })();
