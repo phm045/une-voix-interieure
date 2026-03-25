@@ -5321,3 +5321,126 @@ textarea.blog-comments__input {
   .admin-revenus-split { grid-template-columns: 1fr; }
   #form-depense > div { grid-template-columns: 1fr !important; }
 }
+
+/* ========================================
+   TOAST DE CONFIRMATION (inscription)
+======================================== */
+.toast-confirmation {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #d9d3c7);
+  border-left: 4px solid #27ae60;
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  max-width: 380px;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  font-family: var(--font-body, sans-serif);
+}
+.toast-confirmation--show {
+  transform: translateX(0);
+  opacity: 1;
+}
+.toast-confirmation__icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #27ae60;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+.toast-confirmation__body {
+  flex: 1;
+  font-size: var(--text-sm, 0.9rem);
+  color: var(--color-text, #2c2820);
+  line-height: 1.45;
+}
+.toast-confirmation__close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b6558);
+  padding: 0 0.2rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.toast-confirmation__close:hover {
+  opacity: 1;
+}
+
+/* ========================================
+   BADGE MODÉRATION TÉMOIGNAGES
+======================================== */
+.moderation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 0.8rem);
+  font-weight: 600;
+  font-family: var(--font-body, sans-serif);
+}
+.moderation-badge--pending {
+  background: rgba(243, 156, 18, 0.12);
+  color: #e67e22;
+  border: 1px solid rgba(243, 156, 18, 0.25);
+}
+.moderation-badge--approved {
+  background: rgba(39, 174, 96, 0.10);
+  color: #27ae60;
+  border: 1px solid rgba(39, 174, 96, 0.25);
+}
+.moderation-pending-notice {
+  background: rgba(243, 156, 18, 0.08);
+  border: 1px solid rgba(243, 156, 18, 0.2);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 0.75rem 1rem;
+  font-size: var(--text-sm, 0.9rem);
+  color: var(--color-text, #2c2820);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+/* ========================================
+   VOYANCE PAR MAIL — VÉRIFICATION PAIEMENT
+======================================== */
+.vm-payment-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-sm, 0.9rem);
+  font-family: var(--font-body, sans-serif);
+  margin-bottom: 0.75rem;
+}
+.vm-payment-status--verified {
+  background: rgba(39, 174, 96, 0.08);
+  border: 1px solid rgba(39, 174, 96, 0.2);
+  color: #27ae60;
+}
+.vm-payment-status--unverified {
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  color: #c0392b;
+}
+.vm-payment-status__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}

@@ -1404,9 +1404,31 @@
           if (msg.includes('already registered')) msg = 'Un compte existe déjà avec cette adresse email.';
           afficherMessage('insc-message', msg, 'erreur');
         } else {
-          afficherMessage('insc-message', 'Inscription réussie ! Bienvenue, ' + prenom + '.', 'succes');
+          afficherMessage('insc-message', 'Inscription réussie\u00a0! Bienvenue, ' + prenom + '.', 'succes');
           afficherEtatConnecte({ prenom: prenom, nom: nom, email: email });
           formInscription.reset();
+
+          // Toast de confirmation explicite
+          (function () {
+            var toast = document.createElement('div');
+            toast.className = 'toast-confirmation toast-confirmation--show';
+            toast.innerHTML = '<div class="toast-confirmation__icon">\u2714</div>' +
+              '<div class="toast-confirmation__body">' +
+                '<strong>Compte cr\u00e9\u00e9 avec succ\u00e8s\u00a0!</strong><br>' +
+                'Bienvenue ' + prenom + '\u00a0! Votre espace client est pr\u00eat.' +
+              '</div>' +
+              '<button class="toast-confirmation__close" aria-label="Fermer">&times;</button>';
+            document.body.appendChild(toast);
+            toast.querySelector('.toast-confirmation__close').addEventListener('click', function () {
+              toast.classList.remove('toast-confirmation--show');
+              setTimeout(function () { toast.remove(); }, 400);
+            });
+            setTimeout(function () {
+              toast.classList.remove('toast-confirmation--show');
+              setTimeout(function () { toast.remove(); }, 400);
+            }, 5000);
+          })();
+
           setTimeout(function () {
             history.pushState(null, '', '#mon-compte');
             showPage('mon-compte');
@@ -2403,6 +2425,7 @@
 
   // --- Pop-ups PayPal ---
   var pendingPaypalForm = null;
+  var pendingPaypalServiceName = '';
   document.querySelectorAll('.btn--paypal').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
@@ -2421,6 +2444,7 @@
         var match = label.match(/pour (.+)$/);
         if (match) serviceName = match[1];
       }
+      pendingPaypalServiceName = serviceName;
       var serviceEl = document.getElementById('modal-paypal-service');
       if (serviceEl) serviceEl.textContent = serviceName || '';
       openModal('modal-paypal');
@@ -2431,15 +2455,26 @@
   if (btnPaypalConfirm) {
     btnPaypalConfirm.addEventListener('click', function () {
       closeAllModals();
+      // Marquer le paiement Voyance par mail si c'est ce service
+      if (pendingPaypalServiceName && pendingPaypalServiceName.toLowerCase().indexOf('mail') !== -1) {
+        safeLocal.setItem('vm_payment_initiated', JSON.stringify({
+          timestamp: Date.now(),
+          method: 'PayPal',
+          service: pendingPaypalServiceName
+        }));
+        updateVmPaymentStatus();
+      }
       if (pendingPaypalForm) {
         pendingPaypalForm.submit();
         pendingPaypalForm = null;
       }
+      pendingPaypalServiceName = '';
     });
   }
 
   // --- Pop-ups Stripe / CB ---
   var pendingStripeUrl = '';
+  var pendingStripeServiceName = '';
   document.querySelectorAll('.btn--stripe').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
@@ -2456,6 +2491,7 @@
         var match = label.match(/pour (.+)$/);
         if (match) serviceName = match[1];
       }
+      pendingStripeServiceName = serviceName;
       var serviceEl = document.getElementById('modal-stripe-service');
       if (serviceEl) serviceEl.textContent = serviceName || '';
       openModal('modal-stripe');
@@ -2466,11 +2502,52 @@
   if (btnStripeConfirm) {
     btnStripeConfirm.addEventListener('click', function () {
       closeAllModals();
+      // Marquer le paiement Voyance par mail si c'est ce service
+      if (pendingStripeServiceName && pendingStripeServiceName.toLowerCase().indexOf('mail') !== -1) {
+        safeLocal.setItem('vm_payment_initiated', JSON.stringify({
+          timestamp: Date.now(),
+          method: 'Carte bancaire (Stripe)',
+          service: pendingStripeServiceName
+        }));
+        updateVmPaymentStatus();
+      }
       if (pendingStripeUrl) {
         window.open(pendingStripeUrl, '_blank', 'noopener,noreferrer');
         pendingStripeUrl = '';
       }
+      pendingStripeServiceName = '';
     });
+  }
+
+  // --- Vérification paiement Voyance par mail ---
+  function getVmPaymentInfo() {
+    try {
+      var raw = safeLocal.getItem('vm_payment_initiated');
+      if (!raw) return null;
+      var info = JSON.parse(raw);
+      // Valide pendant 24h (86400000 ms)
+      if (Date.now() - info.timestamp > 86400000) {
+        safeLocal.removeItem('vm_payment_initiated');
+        return null;
+      }
+      return info;
+    } catch(e) { return null; }
+  }
+
+  function updateVmPaymentStatus() {
+    var statusEl = document.getElementById('vm-payment-status');
+    if (!statusEl) return;
+    var info = getVmPaymentInfo();
+    if (info) {
+      var timeStr = new Date(info.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      statusEl.className = 'vm-payment-status vm-payment-status--verified';
+      statusEl.innerHTML = '<span class="vm-payment-status__icon">\u2714</span> Paiement initi\u00e9 via ' + info.method + ' \u00e0 ' + timeStr;
+      statusEl.hidden = false;
+    } else {
+      statusEl.className = 'vm-payment-status vm-payment-status--unverified';
+      statusEl.innerHTML = '<span class="vm-payment-status__icon">\u26a0</span> Aucun paiement d\u00e9tect\u00e9 \u2014 veuillez d\u2019abord payer 9\u00a0\u20ac via PayPal ou CB dans la section Services.';
+      statusEl.hidden = false;
+    }
   }
 
   // --- Pop-ups Réservation Cal.com ---
@@ -2653,66 +2730,50 @@
       formAvis.addEventListener('submit', async function (e) {
         e.preventDefault();
         var nom = document.getElementById('avis-nom').value.trim();
-        var note = parseInt(document.getElementById('avis-note').value) || 5;
+        var note = parseInt(document.getElementById('avis-note').value) || 0;
         var texte = document.getElementById('avis-texte').value.trim();
+        var msgEl = document.getElementById('avis-modal-message');
 
         if (!nom || !texte) return;
 
-        var msgEl = document.getElementById('avis-modal-message');
+        // Vérifier qu'une note a été sélectionnée
+        if (note < 1 || note > 5) {
+          if (msgEl) {
+            msgEl.hidden = false;
+            msgEl.className = 'auth-form__message auth-form__message--erreur';
+            msgEl.textContent = 'Veuillez s\u00e9lectionner une note (1 \u00e0 5 \u00e9toiles).';
+          }
+          return;
+        }
 
-        // Tenter de sauvegarder dans Supabase
+        // Sauvegarder dans Supabase avec statut "en attente de modération"
         try {
           if (window.supabase) {
             await supabase.from('temoignages').insert({
               nom: nom,
               note: note,
-              texte: texte
+              texte: texte,
+              approuve: false
             });
           }
         } catch (err) {
           // Silencieux — fonctionne aussi sans backend
         }
 
-        // Ajouter visuellement le témoignage à la grille
-        var grid = document.querySelector('.testimonials-grid');
-        if (grid) {
-          var initiales = nom.split(' ').map(function (n) { return n.charAt(0).toUpperCase(); }).join('').substring(0, 2);
-          var starsHtml = '';
-          for (var i = 0; i < note; i++) starsHtml += '\u2605';
-          for (var j = note; j < 5; j++) starsHtml += '\u2606';
-
-          var card = document.createElement('div');
-          card.className = 'testimonial-card fade-in';
-          card.innerHTML = '<div class="testimonial-card__stars">' + starsHtml + '</div>' +
-            '<p class="testimonial-card__text">\u00ab ' + texte.replace(/</g, '&lt;').replace(/>/g, '&gt;') + ' \u00bb</p>' +
-            '<div class="testimonial-card__author">' +
-              '<div class="testimonial-card__avatar">' + initiales + '</div>' +
-              '<div><p class="testimonial-card__name">' + nom.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p></div>' +
-            '</div>';
-
-          // Insérer en premier
-          grid.insertBefore(card, grid.firstChild);
-
-          // Déclencher l'animation
-          requestAnimationFrame(function () {
-            card.classList.add('visible');
-          });
-        }
-
-        // Message de succès
+        // Message de succès avec mention de la modération
         if (msgEl) {
           msgEl.hidden = false;
           msgEl.className = 'auth-form__message auth-form__message--succes';
-          msgEl.textContent = 'Merci pour votre t\u00e9moignage \u2764\ufe0f';
+          msgEl.innerHTML = 'Merci pour votre t\u00e9moignage \u2764\ufe0f<br><span class="moderation-pending-notice" style="display:block;margin-top:0.5rem;">Votre avis sera visible apr\u00e8s validation par l\u2019\u00e9quipe.</span>';
         }
 
         setTimeout(function () {
           closeAllModals();
           formAvis.reset();
           if (msgEl) msgEl.hidden = true;
-          // Reset étoiles à 5
-          stars.forEach(function (s) { s.classList.add('active'); });
-          if (noteInput) noteInput.value = '5';
+          // Reset étoiles à 0 (aucune sélectionnée)
+          stars.forEach(function (s) { s.classList.remove('active'); });
+          if (noteInput) noteInput.value = '0';
         }, 2000);
       });
     }
@@ -2727,6 +2788,7 @@
   if (btnVoyanceMail) {
     btnVoyanceMail.addEventListener('click', function () {
       openModal('modal-voyance-mail');
+      updateVmPaymentStatus();
     });
   }
 
@@ -2797,6 +2859,24 @@
 
       if (!prenom || !dob || !email || !question) return;
 
+      // Vérifier le statut de paiement
+      var paymentInfo = getVmPaymentInfo();
+      var paymentStatusHtml = '';
+      if (paymentInfo) {
+        var payDate = new Date(paymentInfo.timestamp);
+        var payDateStr = payDate.toLocaleDateString('fr-FR') + ' \u00e0 ' + payDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        paymentStatusHtml = '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:10px 14px;margin-bottom:12px;">' +
+          '<strong style="color:#2e7d32;">\u2714 Paiement d\u00e9tect\u00e9</strong><br>' +
+          'M\u00e9thode\u00a0: ' + paymentInfo.method + '<br>' +
+          'Initi\u00e9 le\u00a0: ' + payDateStr +
+          '</div>';
+      } else {
+        paymentStatusHtml = '<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:10px 14px;margin-bottom:12px;">' +
+          '<strong style="color:#e65100;">\u26a0 Aucun paiement d\u00e9tect\u00e9</strong><br>' +
+          'Le client n\u2019a pas utilis\u00e9 le bouton de paiement avant d\u2019envoyer sa question. V\u00e9rifiez manuellement sur PayPal/Stripe.' +
+          '</div>';
+      }
+
       // Formater la date en français (entrée au format JJ/MM/AAAA)
       var dobFormatted = dob;
       try {
@@ -2815,8 +2895,9 @@
       try {
         var ok = await envoyerEmailBrevo({
           destinataire: 'philippe.medium45@gmail.com',
-          sujet: 'Voyance par mail \u2013 1 question \u2014 ' + prenom,
+          sujet: 'Voyance par mail \u2013 1 question \u2014 ' + prenom + (paymentInfo ? ' \u2714' : ' \u26a0'),
           contenu: '<h2>Voyance par mail \u2013 1 question</h2>'
+            + paymentStatusHtml
             + '<p><strong>Pr\u00e9nom :</strong> ' + prenom + '</p>'
             + '<p><strong>Date de naissance :</strong> ' + dobFormatted + '</p>'
             + '<p><strong>Email :</strong> ' + email + '</p>'
@@ -2827,6 +2908,8 @@
         });
 
         if (ok) {
+          // Effacer le marqueur de paiement après envoi réussi
+          safeLocal.removeItem('vm_payment_initiated');
           if (msgEl) {
             msgEl.hidden = false;
             msgEl.className = 'auth-form__message auth-form__message--succes';
@@ -3773,6 +3856,7 @@
       if (tabId === 'rdv') chargerAdminRDV();
       if (tabId === 'clients') chargerAdminClients();
       if (tabId === 'newsletter') chargerAdminNewsletter();
+      if (tabId === 'temoignages') chargerAdminTemoignages();
     });
   })();
 
@@ -4614,6 +4698,108 @@
       container.innerHTML = '<p class="admin-dash-empty">Impossible de charger les contacts Brevo. V\u00e9rifiez la cl\u00e9 API.</p>';
     }
   }
+
+  // ========================================
+  // ADMIN — Modération des témoignages
+  // ========================================
+  async function chargerAdminTemoignages() {
+    var container = document.getElementById('admin-temoignages-table');
+    if (!container) return;
+    container.innerHTML = '<p class="admin-dash-loading">Chargement des t\u00e9moignages\u2026</p>';
+
+    try {
+      var { data, error } = await supabase
+        .from('temoignages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="admin-dash-empty">Aucun t\u00e9moignage pour le moment.</p>';
+        return;
+      }
+
+      var pendingCount = data.filter(function(t) { return !t.approuve; }).length;
+      var html = '';
+      if (pendingCount > 0) {
+        html += '<div style="margin-bottom:0.75rem;"><span class="moderation-badge moderation-badge--pending">\u23f3 ' + pendingCount + ' en attente de mod\u00e9ration</span></div>';
+      }
+
+      html += '<div class="admin-dash-table--temoignages">';
+      html += '<div class="admin-dash-table__row admin-dash-table__row--header">' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
+        '<div class="admin-dash-table__cell">Nom</div>' +
+        '<div class="admin-dash-table__cell">Note</div>' +
+        '<div class="admin-dash-table__cell">T\u00e9moignage</div>' +
+        '<div class="admin-dash-table__cell">Date</div>' +
+        '<div class="admin-dash-table__cell">Actions</div>' +
+        '</div>';
+
+      for (var i = 0; i < data.length; i++) {
+        var t = data[i];
+        var starsStr = '';
+        for (var s = 0; s < (t.note || 0); s++) starsStr += '\u2605';
+        for (var e = (t.note || 0); e < 5; e++) starsStr += '\u2606';
+        var dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('fr-FR') : '\u2014';
+        var statusBadge = t.approuve
+          ? '<span class="moderation-badge moderation-badge--approved">\u2714 Approuv\u00e9</span>'
+          : '<span class="moderation-badge moderation-badge--pending">\u23f3 En attente</span>';
+        var actions = '';
+        if (!t.approuve) {
+          actions += '<button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.6rem;" onclick="window.__approuverTemoignage(\'' + t.id + '\')" title="Approuver">\u2714 Approuver</button> ';
+        } else {
+          actions += '<button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.6rem;opacity:0.5;" onclick="window.__revoquerTemoignage(\'' + t.id + '\')" title="R\u00e9voquer">\u21a9 R\u00e9voquer</button> ';
+        }
+        actions += '<button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.6rem;color:#e74c3c;border-color:#e74c3c;" onclick="window.__supprimerTemoignage(\'' + t.id + '\')" title="Supprimer">\u2716</button>';
+
+        html += '<div class="admin-dash-table__row' + (!t.approuve ? ' admin-dash-table__row--highlight' : '') + '">' +
+          '<div class="admin-dash-table__cell">' + statusBadge + '</div>' +
+          '<div class="admin-dash-table__cell">' + (t.nom || 'Anonyme').replace(/</g, '&lt;') + '</div>' +
+          '<div class="admin-dash-table__cell" style="color:#d4a574;">' + starsStr + '</div>' +
+          '<div class="admin-dash-table__cell" style="max-width:300px;white-space:normal;word-break:break-word;">' + (t.texte || '').replace(/</g, '&lt;').substring(0, 120) + (t.texte && t.texte.length > 120 ? '\u2026' : '') + '</div>' +
+          '<div class="admin-dash-table__cell">' + dateStr + '</div>' +
+          '<div class="admin-dash-table__cell">' + actions + '</div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      initResizableColumns(container.querySelector('.admin-dash-table--temoignages'));
+    } catch(err) {
+      container.innerHTML = '<p class="admin-dash-empty">Erreur lors du chargement des t\u00e9moignages.</p>';
+    }
+  }
+
+  // Actions globales pour la modération
+  window.__approuverTemoignage = async function(id) {
+    try {
+      await supabase.from('temoignages').update({ approuve: true }).eq('id', id);
+      showAdminMsg('admin-temoignages-msg', 'T\u00e9moignage approuv\u00e9 avec succ\u00e8s.');
+      chargerAdminTemoignages();
+    } catch(e) {
+      showAdminMsg('admin-temoignages-msg', 'Erreur lors de l\u2019approbation.', true);
+    }
+  };
+
+  window.__revoquerTemoignage = async function(id) {
+    try {
+      await supabase.from('temoignages').update({ approuve: false }).eq('id', id);
+      showAdminMsg('admin-temoignages-msg', 'T\u00e9moignage r\u00e9voqu\u00e9.');
+      chargerAdminTemoignages();
+    } catch(e) {
+      showAdminMsg('admin-temoignages-msg', 'Erreur lors de la r\u00e9vocation.', true);
+    }
+  };
+
+  window.__supprimerTemoignage = async function(id) {
+    if (!confirm('Supprimer d\u00e9finitivement ce t\u00e9moignage\u00a0?')) return;
+    try {
+      await supabase.from('temoignages').delete().eq('id', id);
+      showAdminMsg('admin-temoignages-msg', 'T\u00e9moignage supprim\u00e9.');
+      chargerAdminTemoignages();
+    } catch(e) {
+      showAdminMsg('admin-temoignages-msg', 'Erreur lors de la suppression.', true);
+    }
+  };
 
   // ─── Override blog form submit to handle edit mode ───
   var origBlogForm = document.getElementById('admin-blog-form');
