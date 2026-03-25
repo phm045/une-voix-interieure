@@ -5738,10 +5738,19 @@
 
   var _dispoUseLocal = false; // bascule sur localStorage si Supabase indisponible
 
-  // --- Vérifier si la table disponibilites existe ---
+  // --- Vérifier si la table disponibilites existe (avec timeout) ---
+  var _dispoChecked = false;
   async function dispoCheckTable() {
+    if (_dispoChecked) return;
     try {
+      // Timeout de 3 secondes pour ne pas bloquer l'affichage
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timeoutId = null;
+      if (controller) {
+        timeoutId = setTimeout(function() { controller.abort(); }, 3000);
+      }
       var r = await supabase.from('disponibilites').select('id').limit(1);
+      if (timeoutId) clearTimeout(timeoutId);
       if (r.error && (r.error.code === 'PGRST205' || r.error.code === '42P01' || r.status === 404)) {
         _dispoUseLocal = true;
         console.warn('Table disponibilites absente dans Supabase \u2014 utilisation de localStorage.');
@@ -5751,6 +5760,7 @@
     } catch(e) {
       _dispoUseLocal = true;
     }
+    _dispoChecked = true;
   }
 
   // --- Helpers localStorage ---
@@ -6164,65 +6174,72 @@
   // ═══════════════════════════════════════════════════
   // BANNIÈRE D'ABSENCE — Accueil (visible par tous)
   // ═══════════════════════════════════════════════════
+  // --- Afficher la bannière si une absence est active ---
+  function afficherBanniereAbsence(absences) {
+    var banner = document.getElementById('absence-banner');
+    if (!banner) return;
+    var now = new Date();
+    var absenceActive = null;
+    for (var i = 0; i < absences.length; i++) {
+      var d = absences[i].data || {};
+      if (!d.debut || !d.fin) continue;
+      var debut = new Date(d.debut + 'T00:00:00');
+      var fin = new Date(d.fin + 'T23:59:59');
+      if (now >= debut && now <= fin) {
+        absenceActive = absences[i];
+        break;
+      }
+    }
+    if (!absenceActive) {
+      banner.hidden = true;
+      return;
+    }
+    var d = absenceActive.data;
+    var finDate = new Date(d.fin);
+    var options = { day: 'numeric', month: 'long', year: 'numeric' };
+    var finStr = finDate.toLocaleDateString('fr-FR', options);
+    var title = document.getElementById('absence-banner-title');
+    var detail = document.getElementById('absence-banner-detail');
+    if (title) {
+      title.textContent = d.motif ? d.motif : 'Actuellement indisponible';
+    }
+    if (detail) {
+      var msg = 'Je suis absent(e) jusqu\u2019au ' + finStr + '. Les consultations reprendront \u00e0 mon retour.';
+      var diffJours = Math.ceil((finDate - now) / (1000*60*60*24));
+      if (diffJours <= 0) {
+        msg = 'Derni\u00e8re journ\u00e9e d\u2019absence. Les consultations reprennent d\u00e8s demain\u00a0!';
+      } else if (diffJours === 1) {
+        msg = 'De retour d\u00e8s demain\u00a0! Les consultations reprendront tr\u00e8s bient\u00f4t.';
+      }
+      detail.textContent = msg;
+    }
+    banner.setAttribute('data-absence-id', absenceActive.id);
+    if (sessionStorage.getItem('absence-banner-closed') === String(absenceActive.id)) {
+      banner.hidden = true;
+    } else {
+      banner.hidden = false;
+    }
+  }
+
   async function verifierAbsenceEnCours() {
     var banner = document.getElementById('absence-banner');
     if (!banner) return;
     try {
+      // Étape 1 : Vérifier immédiatement avec localStorage (instantané)
+      var localAbsences = dispoLocalGet('absence');
+      if (localAbsences.length > 0) {
+        afficherBanniereAbsence(localAbsences);
+      }
+      // Étape 2 : Vérifier aussi via Supabase (en arrière-plan)
       await dispoCheckTable();
-      var absences = [];
-      if (_dispoUseLocal) {
-        absences = dispoLocalGet('absence');
-      } else {
+      if (!_dispoUseLocal) {
         var result = await supabase.from('disponibilites').select('*').eq('type', 'absence');
-        absences = result.data || [];
-      }
-      var now = new Date();
-      // Trouver une absence dont la période couvre aujourd'hui
-      var absenceActive = null;
-      for (var i = 0; i < absences.length; i++) {
-        var d = absences[i].data || {};
-        var debut = new Date(d.debut + 'T00:00:00');
-        var fin = new Date(d.fin + 'T23:59:59');
-        if (now >= debut && now <= fin) {
-          absenceActive = absences[i];
-          break;
+        var sbAbsences = result.data || [];
+        if (sbAbsences.length > 0) {
+          afficherBanniereAbsence(sbAbsences);
         }
-      }
-      if (!absenceActive) {
-        banner.hidden = true;
-        return;
-      }
-      // Construire le message
-      var d = absenceActive.data;
-      var finDate = new Date(d.fin);
-      var options = { day: 'numeric', month: 'long', year: 'numeric' };
-      var finStr = finDate.toLocaleDateString('fr-FR', options);
-      var title = document.getElementById('absence-banner-title');
-      var detail = document.getElementById('absence-banner-detail');
-      if (title) {
-        title.textContent = d.motif ? d.motif : 'Actuellement indisponible';
-      }
-      if (detail) {
-        var msg = 'Je suis absent(e) jusqu\u2019au ' + finStr + '. Les consultations reprendront \u00e0 mon retour.';
-        // Si retour demain ou aujourd'hui
-        var diffJours = Math.ceil((finDate - now) / (1000*60*60*24));
-        if (diffJours <= 0) {
-          msg = 'Derni\u00e8re journ\u00e9e d\u2019absence. Les consultations reprennent d\u00e8s demain\u00a0!';
-        } else if (diffJours === 1) {
-          msg = 'De retour d\u00e8s demain\u00a0! Les consultations reprendront tr\u00e8s bient\u00f4t.';
-        }
-        detail.textContent = msg;
-      }
-      // Stocker l'id sur la bannière pour le bouton fermer
-      banner.setAttribute('data-absence-id', absenceActive.id);
-      // Vérifier si l'utilisateur a fermé la bannière dans cette session
-      if (sessionStorage.getItem('absence-banner-closed') === String(absenceActive.id)) {
-        banner.hidden = true;
-      } else {
-        banner.hidden = false;
       }
     } catch(e) {
-      // Silencieux si la table n'existe pas encore
       console.warn('V\u00e9rification absence:', e);
     }
   }
