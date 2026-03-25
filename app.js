@@ -5571,4 +5571,34 @@
   }
 
 
+  // ========================================
+  // COMPTEUR DE VISITEURS
+  // ========================================
+  (async function initCompteurVisiteurs() {
+    var el = document.getElementById('compteur-visiteurs');
+    if (!el || !window.supabase) return;
+
+    try {
+      var sb = supabase;
+      // Vérifier si déjà compté dans cette session
+      var sessionKey = 'li_visite_comptee';
+      var dejaCompte = false;
+      try { dejaCompte = !!safeSession.getItem(sessionKey); } catch(e) {}
+
+      if (!dejaCompte) {
+        // Incrémenter le compteur
+        await sb.rpc('incrementer_visiteurs');
+        try { safeSession.setItem(sessionKey, '1'); } catch(e) {}
+      }
+
+      // Lire le total
+      var result = await sb.from('visiteurs').select('total').eq('id', 1).maybeSingle();
+      if (result.data && result.data.total != null) {
+        el.textContent = result.data.total.toLocaleString('fr-FR');
+      }
+    } catch(e) {
+      // Fallback silencieux
+    }
+  })();
+
 })();
