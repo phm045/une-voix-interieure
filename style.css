@@ -1357,12 +1357,14 @@ section {
 /* Horaires card */
 .horaires-card {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-6) var(--space-8);
   margin-top: var(--space-6);
   margin-bottom: var(--space-2);
   max-width: 420px;
@@ -1370,8 +1372,8 @@ section {
 }
 .horaires-card__icon {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1380,13 +1382,13 @@ section {
   color: var(--color-primary);
 }
 .horaires-card__body {
-  flex: 1;
+  width: 100%;
 }
 .horaires-card__title {
   font-family: var(--font-display);
   font-size: var(--text-base);
   font-weight: 500;
-  margin: 0 0 var(--space-2) 0;
+  margin: 0 0 var(--space-3) 0;
   color: var(--color-text);
 }
 .horaires-card__grid {
