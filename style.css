@@ -4654,7 +4654,7 @@ textarea.blog-comments__input {
 /* Admin Tabs */
 .admin-dash-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.35rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -4675,6 +4675,7 @@ textarea.blog-comments__input {
   padding: 0.6rem 0.9rem;
   border: none;
   background: transparent;
+  flex-shrink: 0;
   color: var(--text-secondary, #999);
   font-family: 'Work Sans', sans-serif;
   font-size: 0.82rem;

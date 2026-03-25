@@ -930,27 +930,35 @@
     var xhr = new XMLHttpRequest();
     xhr.open('GET', COUNTAPI_BASE + '/get/' + COUNTAPI_PREFIX + articleId);
     xhr.responseType = 'json';
+    xhr.timeout = 5000;
     xhr.onload = function() {
-      var val = 0;
-      if (xhr.response && xhr.response.value !== undefined) val = parseInt(xhr.response.value, 10) || 0;
-      viewsCache[articleId] = val;
-      if (callback) callback(val);
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
+        var val = parseInt(xhr.response.value, 10) || 0;
+        viewsCache[articleId] = val;
+        if (callback) callback(val);
+      } else {
+        if (callback) callback(viewsCache[articleId] || 0);
+      }
     };
-    xhr.onerror = function() { if (callback) callback(viewsCache[articleId] || 0); };
-    xhr.send();
+    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(viewsCache[articleId] || 0); };
+    try { xhr.send(); } catch(e) { if (callback) callback(0); }
   }
   function addView(articleId, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', COUNTAPI_BASE + '/hit/' + COUNTAPI_PREFIX + articleId);
     xhr.responseType = 'json';
+    xhr.timeout = 5000;
     xhr.onload = function() {
-      var val = 0;
-      if (xhr.response && xhr.response.value !== undefined) val = parseInt(xhr.response.value, 10) || 0;
-      viewsCache[articleId] = val;
-      if (callback) callback(val);
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
+        var val = parseInt(xhr.response.value, 10) || 0;
+        viewsCache[articleId] = val;
+        if (callback) callback(val);
+      } else {
+        if (callback) callback(viewsCache[articleId] || 0);
+      }
     };
-    xhr.onerror = function() { if (callback) callback(viewsCache[articleId] || 0); };
-    xhr.send();
+    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(viewsCache[articleId] || 0); };
+    try { xhr.send(); } catch(e) { if (callback) callback(0); }
   }
   function updateCardStats(articleId) {
     var card = document.querySelector('.blog-card[data-article="' + articleId + '"]');
