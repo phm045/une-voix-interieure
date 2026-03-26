@@ -3495,6 +3495,19 @@
     if (!isError) setTimeout(function() { el.hidden = true; }, 3000);
   }
 
+  // Toast notification for Stripe sync feedback
+  function showStripeToast(message, isError) {
+    var toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;padding:12px 20px;border-radius:8px;font-size:0.9rem;max-width:420px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;'
+      + (isError ? 'background:#fdecea;color:#b71c1c;border:1px solid #e57373;' : 'background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;');
+    document.body.appendChild(toast);
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, isError ? 5000 : 3000);
+  }
+
   // openModal/closeModal — unified version (extends the base version above)
   // We override the earlier openModal/closeModal to add admin modal cleanup
   (function() {
@@ -3957,9 +3970,9 @@
     }
   })();
 
-  // Generic Stripe API call helper
+  // Generic Stripe API call helper (via CORS proxy to avoid browser CORS blocks)
   async function stripeApiCall(endpoint, method, params) {
-    var url = 'https://api.stripe.com/v1' + endpoint;
+    var stripeUrl = 'https://api.stripe.com/v1' + endpoint;
     var options = {
       method: method || 'POST',
       headers: {
@@ -3968,14 +3981,22 @@
       }
     };
     if (params) {
-      var body = new URLSearchParams(params).toString();
+      // Build body manually to support nested params like promotion[type]
+      var parts = [];
+      for (var key in params) {
+        if (params.hasOwnProperty(key)) {
+          parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+        }
+      }
+      var body = parts.join('&');
       if (method === 'GET') {
-        url += '?' + body;
+        stripeUrl += '?' + body;
         delete options.headers['Content-Type'];
       } else {
         options.body = body;
       }
     }
+    var url = 'https://corsproxy.io/?' + encodeURIComponent(stripeUrl);
     var resp = await fetch(url, options);
     var json = await resp.json();
     if (!resp.ok) {
@@ -4113,7 +4134,11 @@
             try {
               var promoId = await obtenirOuCreerStripePromo(coupon);
               if (promoId) await stripeTogglePromo(promoId, false);
-            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr); }
+              showStripeToast('Synchronisé avec Stripe \u2713', false);
+            } catch(stripeErr) {
+              console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr);
+              showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été supprimé localement mais pas sur Stripe.', true);
+            }
             await supabase.from('coupons_utilises').delete().eq('coupon_id', couponId);
             await supabase.from('coupons').delete().eq('id', couponId);
           } else if (action === 'deactivate') {
@@ -4122,13 +4147,21 @@
             try {
               var promoId = await obtenirOuCreerStripePromo(coupon);
               if (promoId) await stripeTogglePromo(promoId, false);
-            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation promo:', stripeErr); }
+              showStripeToast('Synchronisé avec Stripe \u2713', false);
+            } catch(stripeErr) {
+              console.warn('[Stripe] Erreur désactivation promo:', stripeErr);
+              showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été mis à jour localement mais pas sur Stripe.', true);
+            }
           } else if (action === 'activate') {
             // Activate on Stripe (create if needed)
             try {
               var promoId = await obtenirOuCreerStripePromo(coupon);
               if (promoId) await stripeTogglePromo(promoId, true);
-            } catch(stripeErr) { console.warn('[Stripe] Erreur activation promo:', stripeErr); }
+              showStripeToast('Synchronisé avec Stripe \u2713', false);
+            } catch(stripeErr) {
+              console.warn('[Stripe] Erreur activation promo:', stripeErr);
+              showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été mis à jour localement mais pas sur Stripe.', true);
+            }
             await supabase.from('coupons').update({ actif: true }).eq('id', couponId);
           }
 
@@ -4174,8 +4207,10 @@
       try {
         stripeIds = await stripeCreerCouponEtPromo(code, reduction);
         saveStripePromoMapping(code, stripeIds.promo_id, stripeIds.coupon_id);
+        showStripeToast('Synchronisé avec Stripe \u2713', false);
       } catch(stripeErr) {
         console.warn('[Stripe] Erreur création coupon Stripe:', stripeErr);
+        showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été créé localement mais pas sur Stripe.', true);
         // Continue with Supabase creation even if Stripe fails
       }
 
@@ -4791,13 +4826,21 @@
             try {
               var promoId = await obtenirOuCreerStripePromo(coupon);
               if (promoId) await stripeTogglePromo(promoId, true);
-            } catch(stripeErr) { console.warn('[Stripe] Erreur activation promo:', stripeErr); }
+              showStripeToast('Synchronisé avec Stripe \u2713', false);
+            } catch(stripeErr) {
+              console.warn('[Stripe] Erreur activation promo:', stripeErr);
+              showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été mis à jour localement mais pas sur Stripe.', true);
+            }
           } else {
             // Deactivate: update Supabase, then deactivate on Stripe
             try {
               var promoId = await obtenirOuCreerStripePromo(coupon);
               if (promoId) await stripeTogglePromo(promoId, false);
-            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation promo:', stripeErr); }
+              showStripeToast('Synchronisé avec Stripe \u2713', false);
+            } catch(stripeErr) {
+              console.warn('[Stripe] Erreur désactivation promo:', stripeErr);
+              showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été mis à jour localement mais pas sur Stripe.', true);
+            }
           }
           await supabase.from('coupons').update({ actif: newVal }).eq('id', couponId);
           chargerAdminCouponsTab();
@@ -4814,7 +4857,11 @@
           try {
             var promoId = await obtenirOuCreerStripePromo(coupon);
             if (promoId) await stripeTogglePromo(promoId, false);
-          } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr); }
+            showStripeToast('Synchronisé avec Stripe \u2713', false);
+          } catch(stripeErr) {
+            console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr);
+            showStripeToast('\u26A0 Erreur Stripe : ' + stripeErr.message + '. Le coupon a été supprimé localement mais pas sur Stripe.', true);
+          }
           await supabase.from('coupons_utilises').delete().eq('coupon_id', couponId);
           await supabase.from('coupons').delete().eq('id', couponId);
           chargerAdminCouponsTab();
