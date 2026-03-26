@@ -3915,10 +3915,16 @@
     chargerCAMensuel();
     verifierArchivageAuto();
     chargerBadgesNotifications();
-    // Initialize search listeners once
+    // Initialize search listeners once + preload key admin tabs
     if (!_adminDashInitialized) {
       _adminDashInitialized = true;
       initAdminSearchListeners();
+      // Pre-load main admin tabs so data is ready when user clicks
+      chargerAdminVisiteurs();
+      chargerAdminClients();
+      chargerAdminRDV();
+      chargerAdminCommandes();
+      chargerAdminTemoignages();
     }
   }
 
