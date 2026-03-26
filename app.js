@@ -1298,6 +1298,11 @@
         narrowContainer.classList.remove('container--narrow');
         narrowContainer.classList.add('container--admin-wide');
       }
+      // Load admin dashboard data if on the mon-compte page (fixes refresh losing data)
+      var currentPage = location.hash.replace('#', '') || 'accueil';
+      if (currentPage === 'mon-compte') {
+        chargerDashboardAdmin();
+      }
     } else {
       if (adminDash) adminDash.hidden = true;
       if (authEl) authEl.hidden = false;
@@ -3842,6 +3847,96 @@
   // ADMIN DASHBOARD — Full management panel
   // ========================================
 
+  // --- Admin localStorage cache helpers ---
+  var ADMIN_CACHE_PREFIX = 'li_admin_cache_';
+  var ADMIN_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+  function adminCacheSet(key, data) {
+    try {
+      safeLocal.setItem(ADMIN_CACHE_PREFIX + key, JSON.stringify({
+        ts: Date.now(),
+        data: data
+      }));
+    } catch(e) {}
+  }
+
+  function adminCacheGet(key) {
+    try {
+      var raw = safeLocal.getItem(ADMIN_CACHE_PREFIX + key);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (Date.now() - parsed.ts > ADMIN_CACHE_TTL) {
+        safeLocal.removeItem(ADMIN_CACHE_PREFIX + key);
+        return null;
+      }
+      return parsed.data;
+    } catch(e) { return null; }
+  }
+
+  // Restore cached admin stats immediately into the DOM
+  function restaurerAdminStatsCache() {
+    var cached = adminCacheGet('stats');
+    if (!cached) return;
+    var statIds = ['stat-clients', 'stat-commandes', 'stat-ca', 'stat-rdv', 'stat-articles', 'stat-produits', 'stat-coupons', 'stat-newsletter'];
+    for (var i = 0; i < statIds.length; i++) {
+      var el = document.getElementById(statIds[i]);
+      if (el && cached[statIds[i]] != null) el.textContent = cached[statIds[i]];
+    }
+  }
+
+  // Restore cached CA data immediately into the DOM
+  function restaurerAdminCACache() {
+    var cached = adminCacheGet('ca');
+    if (!cached) return;
+    var fields = ['ca-mois-brut', 'ca-mois-urssaf', 'ca-mois-net', 'ca-mois-nb',
+      'rev-consult-brut', 'rev-consult-urssaf', 'rev-consult-net', 'rev-consult-nb',
+      'rev-boutique-brut', 'rev-boutique-urssaf', 'rev-boutique-net', 'rev-boutique-nb'];
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i]);
+      if (el && cached[fields[i]] != null) el.textContent = cached[fields[i]];
+    }
+    var periodeEl = document.getElementById('admin-ca-period');
+    if (periodeEl && cached['admin-ca-period']) periodeEl.textContent = cached['admin-ca-period'];
+  }
+
+  // Restore cached admin table data for a specific tab
+  function restaurerAdminTabCache(tabKey, containerId) {
+    var cached = adminCacheGet('tab_' + tabKey);
+    if (!cached) return false;
+    var container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = cached;
+      return true;
+    }
+    return false;
+  }
+
+  // Save current stat values from the DOM to localStorage
+  function sauvegarderAdminStatsCache() {
+    var statIds = ['stat-clients', 'stat-commandes', 'stat-ca', 'stat-rdv', 'stat-articles', 'stat-produits', 'stat-coupons', 'stat-newsletter'];
+    var cache = {};
+    for (var i = 0; i < statIds.length; i++) {
+      var el = document.getElementById(statIds[i]);
+      if (el) cache[statIds[i]] = el.textContent;
+    }
+    adminCacheSet('stats', cache);
+  }
+
+  // Save current CA values from the DOM to localStorage
+  function sauvegarderAdminCACache() {
+    var fields = ['ca-mois-brut', 'ca-mois-urssaf', 'ca-mois-net', 'ca-mois-nb',
+      'rev-consult-brut', 'rev-consult-urssaf', 'rev-consult-net', 'rev-consult-nb',
+      'rev-boutique-brut', 'rev-boutique-urssaf', 'rev-boutique-net', 'rev-boutique-nb'];
+    var cache = {};
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i]);
+      if (el) cache[fields[i]] = el.textContent;
+    }
+    var periodeEl = document.getElementById('admin-ca-period');
+    if (periodeEl) cache['admin-ca-period'] = periodeEl.textContent;
+    adminCacheSet('ca', cache);
+  }
+
   var _adminDashInitialized = false;
 
   // --- Admin tab switching ---
@@ -3911,6 +4006,10 @@
   // --- Main entry point: load all admin data ---
   function chargerDashboardAdmin() {
     if (!window.__isAdmin) return;
+    // Immediately restore cached stats/CA so UI isn't empty while Supabase loads
+    restaurerAdminStatsCache();
+    restaurerAdminCACache();
+    // Then fetch fresh data from Supabase (will overwrite cache values)
     chargerAdminStats();
     chargerCAMensuel();
     verifierArchivageAuto();
@@ -4012,6 +4111,8 @@
         el = document.getElementById('stat-newsletter');
         if (el) el.textContent = (s.nb_newsletter != null) ? s.nb_newsletter : '0';
       }
+      // Cache stats to localStorage for instant display on next page load
+      sauvegarderAdminStatsCache();
     } catch(e) {
       // Fallback: try individual queries
       chargerAdminStatsFallback();
@@ -4066,12 +4167,15 @@
       var el7 = document.getElementById('stat-newsletter');
       if (el7) el7.textContent = nlCount;
     } catch(e) {}
+    // Cache fallback stats too
+    sauvegarderAdminStatsCache();
   }
 
   // ─── 2. BLOG MANAGEMENT ───
   async function chargerAdminBlog(filter) {
     var container = document.getElementById('admin-blog-table');
     if (!container) return;
+    if (!filter) restaurerAdminTabCache('blog', 'admin-blog-table');
     try {
       var result = await supabase.from('blog_articles').select('*').order('created_at', { ascending: false });
       if (result.error) throw result.error;
@@ -4109,6 +4213,7 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      if (!filter) adminCacheSet('tab_blog', html);
       // Attach handlers
       var delBtns = container.querySelectorAll('[data-del-blog]');
       for (var d = 0; d < delBtns.length; d++) {
@@ -4130,7 +4235,9 @@
         });
       }
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des articles.</p>';
+      if (!restaurerAdminTabCache('blog', 'admin-blog-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des articles.</p>';
+      }
     }
   }
 
@@ -4170,6 +4277,7 @@
   async function chargerAdminBoutique(filter) {
     var container = document.getElementById('admin-boutique-table');
     if (!container) return;
+    if (!filter) restaurerAdminTabCache('boutique', 'admin-boutique-table');
     try {
       var result = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
       if (result.error) throw result.error;
@@ -4207,6 +4315,7 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      if (!filter) adminCacheSet('tab_boutique', html);
       // Attach handlers
       var delBtns = container.querySelectorAll('[data-del-prod]');
       for (var d = 0; d < delBtns.length; d++) {
@@ -4228,7 +4337,9 @@
         });
       }
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des produits.</p>';
+      if (!restaurerAdminTabCache('boutique', 'admin-boutique-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des produits.</p>';
+      }
     }
   }
 
@@ -4267,6 +4378,7 @@
   async function chargerAdminCouponsTab() {
     var container = document.getElementById('admin-coupons-table');
     if (!container) return;
+    restaurerAdminTabCache('coupons', 'admin-coupons-table');
     try {
       var result = await supabase.from('coupons').select('*').order('date_creation', { ascending: false });
       if (result.error) throw result.error;
@@ -4308,6 +4420,7 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      adminCacheSet('tab_coupons', html);
       // Attach toggle handlers
       var toggleBtns = container.querySelectorAll('[data-toggle-coupon]');
       for (var t = 0; t < toggleBtns.length; t++) {
@@ -4335,7 +4448,9 @@
         });
       }
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des coupons.</p>';
+      if (!restaurerAdminTabCache('coupons', 'admin-coupons-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des coupons.</p>';
+      }
     }
   }
 
@@ -4343,6 +4458,7 @@
   async function chargerAdminCommandes(filter) {
     var container = document.getElementById('admin-commandes-table');
     if (!container) return;
+    if (!filter) restaurerAdminTabCache('commandes', 'admin-commandes-table');
     try {
       // Try RPC first (includes user emails)
       var result = await supabase.rpc('get_admin_commandes');
@@ -4392,6 +4508,7 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      if (!filter) adminCacheSet('tab_commandes', html);
       // Attach refund handlers
       var refundBtns = container.querySelectorAll('[data-refund-cmd]');
       for (var r = 0; r < refundBtns.length; r++) {
@@ -4406,7 +4523,9 @@
         });
       }
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des commandes.</p>';
+      if (!restaurerAdminTabCache('commandes', 'admin-commandes-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des commandes.</p>';
+      }
     }
   }
 
@@ -4462,7 +4581,9 @@
   async function chargerAdminRDV(filter) {
     var container = document.getElementById('admin-rdv-table');
     if (!container) return;
-    container.innerHTML = '<p class="admin-dash-loading">Chargement des rendez-vous Cal.eu\u2026</p>';
+    if (!filter && !restaurerAdminTabCache('rdv', 'admin-rdv-table')) {
+      container.innerHTML = '<p class="admin-dash-loading">Chargement des rendez-vous Cal.eu\u2026</p>';
+    }
 
     try {
       // Source principale : Cal.eu API
@@ -4537,6 +4658,7 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      if (!filter) adminCacheSet('tab_rdv', html);
       initResizableColumns(container.querySelector('.admin-dash-table--rdv'));
 
       // Attach status change handlers (synced with Cal.eu)
@@ -4584,7 +4706,9 @@
         });
       }
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des RDV. Vérifiez la connexion Cal.eu.</p>';
+      if (!restaurerAdminTabCache('rdv', 'admin-rdv-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des RDV. Vérifiez la connexion Cal.eu.</p>';
+      }
     }
   }
 
@@ -4593,6 +4717,7 @@
   async function chargerAdminClients(filter) {
     var container = document.getElementById('admin-clients-table');
     if (!container) return;
+    if (!filter) restaurerAdminTabCache('clients', 'admin-clients-table');
     try {
       var result = await supabase.rpc('get_admin_clients');
       var data;
@@ -4645,9 +4770,12 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      if (!filter) adminCacheSet('tab_clients', html);
       initResizableColumns(container.querySelector('.admin-dash-table--clients'));
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des clients.</p>';
+      if (!restaurerAdminTabCache('clients', 'admin-clients-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur de chargement des clients.</p>';
+      }
     }
   }
 
@@ -4669,7 +4797,9 @@
   async function chargerAdminNewsletter() {
     var container = document.getElementById('admin-newsletter-table');
     if (!container) return;
-    container.innerHTML = '<p class="admin-dash-empty" style="opacity:0.6">Chargement depuis Brevo\u2026</p>';
+    if (!restaurerAdminTabCache('newsletter', 'admin-newsletter-table')) {
+      container.innerHTML = '<p class="admin-dash-empty" style="opacity:0.6">Chargement depuis Brevo\u2026</p>';
+    }
 
     try {
       // Fetch contacts from Brevo list 3 (newsletter)
@@ -4738,9 +4868,12 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      adminCacheSet('tab_newsletter', html);
       initResizableColumns(container.querySelector('.admin-dash-table--newsletter'));
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Impossible de charger les contacts Brevo. V\u00e9rifiez la cl\u00e9 API.</p>';
+      if (!restaurerAdminTabCache('newsletter', 'admin-newsletter-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Impossible de charger les contacts Brevo. V\u00e9rifiez la cl\u00e9 API.</p>';
+      }
     }
   }
 
@@ -4750,7 +4883,9 @@
   async function chargerAdminTemoignages() {
     var container = document.getElementById('admin-temoignages-table');
     if (!container) return;
-    container.innerHTML = '<p class="admin-dash-loading">Chargement des t\u00e9moignages\u2026</p>';
+    if (!restaurerAdminTabCache('temoignages', 'admin-temoignages-table')) {
+      container.innerHTML = '<p class="admin-dash-loading">Chargement des t\u00e9moignages\u2026</p>';
+    }
 
     try {
       var { data, error } = await supabase
@@ -4808,9 +4943,12 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      adminCacheSet('tab_temoignages', html);
       initResizableColumns(container.querySelector('.admin-dash-table--temoignages'));
     } catch(err) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur lors du chargement des t\u00e9moignages.</p>';
+      if (!restaurerAdminTabCache('temoignages', 'admin-temoignages-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur lors du chargement des t\u00e9moignages.</p>';
+      }
     }
   }
 
@@ -5103,6 +5241,9 @@
         nbConsult: nbConsult,
         nbBoutique: nbBoutique
       };
+
+      // Cache CA data to localStorage for instant display on next page load
+      sauvegarderAdminCACache();
 
     } catch(e) {
       console.warn('Erreur chargement CA:', e);
@@ -5672,7 +5813,9 @@
   async function chargerAdminVisiteurs(filter) {
     var container = document.getElementById('admin-visiteurs-table');
     if (!container) return;
-    container.innerHTML = '<p class="admin-dash-loading">Chargement des visiteurs\u2026</p>';
+    if (!restaurerAdminTabCache('visiteurs', 'admin-visiteurs-table')) {
+      container.innerHTML = '<p class="admin-dash-loading">Chargement des visiteurs\u2026</p>';
+    }
 
     filter = filter || '50';
 
@@ -5747,9 +5890,12 @@
       }
       html += '</div>';
       container.innerHTML = html;
+      adminCacheSet('tab_visiteurs', html);
       initResizableColumns(container.querySelector('.admin-dash-table--visiteurs'));
     } catch(e) {
-      container.innerHTML = '<p class="admin-dash-empty">Erreur lors du chargement des visiteurs.</p>';
+      if (!restaurerAdminTabCache('visiteurs', 'admin-visiteurs-table')) {
+        container.innerHTML = '<p class="admin-dash-empty">Erreur lors du chargement des visiteurs.</p>';
+      }
     }
   }
 
