@@ -5496,6 +5496,9 @@
     if (!tableEl || tableEl.dataset.resizable === 'true') return;
     tableEl.dataset.resizable = 'true';
 
+    // Disable column resizing on mobile/tablet — use stacked card layout instead
+    if (window.innerWidth <= 900) return;
+
     var headerRow = tableEl.querySelector('.admin-dash-table__row--header');
     if (!headerRow) return;
 
@@ -5507,7 +5510,9 @@
     var tableWidth = tableEl.offsetWidth;
     var colWidths = [];
     for (var i = 0; i < colCount; i++) {
-      colWidths.push(cells[i].offsetWidth);
+      var w = cells[i].offsetWidth;
+      // Fallback: if width is 0 (hidden header), distribute evenly
+      colWidths.push(w > 0 ? w : Math.floor(tableWidth / colCount));
     }
 
     // Switch from CSS grid-template-columns to explicit pixel widths
@@ -5785,6 +5790,22 @@
 
   var _badgeCurrentCounts = {};
 
+  // Helper: get new count vs last seen, auto-init lastSeen on first visit
+  function getNewCount(tabName, total) {
+    var seen = getLastSeen(tabName);
+    // If lastSeen was never set (first visit), initialize it to current total
+    // so badges start at 0 instead of showing the entire existing count
+    if (seen === 0) {
+      var data = {};
+      try { data = JSON.parse(localStorage.getItem('li_admin_seen') || '{}'); } catch(e) {}
+      if (!(tabName in data)) {
+        setLastSeen(tabName, total);
+        return 0;
+      }
+    }
+    return Math.max(0, total - seen);
+  }
+
   async function chargerBadgesNotifications() {
     try {
       // --- Blog ---
@@ -5793,7 +5814,7 @@
         var nbStaticBlog = document.querySelectorAll('.blog-card[data-article]:not([data-dynamic])').length;
         var totalBlog = (blogRes.count || 0) + nbStaticBlog;
         _badgeCurrentCounts.blog = totalBlog;
-        var newBlog = totalBlog - getLastSeen('blog');
+        var newBlog = getNewCount('blog', totalBlog);
         if (newBlog > 0) setBadge('blog', newBlog);
       } catch(e) {}
 
@@ -5802,7 +5823,7 @@
         var prodRes = await supabase.from('boutique_products').select('id', { count: 'exact', head: true });
         var totalProd = prodRes.count || 0;
         _badgeCurrentCounts.boutique = totalProd;
-        var newProd = totalProd - getLastSeen('boutique');
+        var newProd = getNewCount('boutique', totalProd);
         if (newProd > 0) setBadge('boutique', newProd);
       } catch(e) {}
 
@@ -5811,7 +5832,7 @@
         var coupRes = await supabase.from('coupons').select('id', { count: 'exact', head: true }).eq('actif', true);
         var totalCoup = coupRes.count || 0;
         _badgeCurrentCounts.coupons = totalCoup;
-        var newCoup = totalCoup - getLastSeen('coupons');
+        var newCoup = getNewCount('coupons', totalCoup);
         if (newCoup > 0) setBadge('coupons', newCoup);
       } catch(e) {}
 
@@ -5820,7 +5841,7 @@
         var cmdRes = await supabase.from('commandes').select('id', { count: 'exact', head: true });
         var totalCmd = cmdRes.count || 0;
         _badgeCurrentCounts.commandes = totalCmd;
-        var newCmd = totalCmd - getLastSeen('commandes');
+        var newCmd = getNewCount('commandes', totalCmd);
         if (newCmd > 0) setBadge('commandes', newCmd);
       } catch(e) {}
 
@@ -5829,7 +5850,7 @@
         var calBookings = await fetchCalBookings();
         var upcomingRdv = calBookings.filter(function(b) { return b.status !== 'cancelled'; }).length;
         _badgeCurrentCounts.rdv = upcomingRdv;
-        var newRdv = upcomingRdv - getLastSeen('rdv');
+        var newRdv = getNewCount('rdv', upcomingRdv);
         if (newRdv > 0) setBadge('rdv', newRdv);
       } catch(e) {}
 
@@ -5839,13 +5860,16 @@
         if (clientsRes.data) {
           var totalClients = clientsRes.data.nb_clients || 0;
           _badgeCurrentCounts.clients = totalClients;
-          var newClients = totalClients - getLastSeen('clients');
+          var newClients = getNewCount('clients', totalClients);
           if (newClients > 0) setBadge('clients', newClients);
 
-          // Newsletter
+          // Newsletter — use Brevo count if available, fallback to RPC
           var totalNl = clientsRes.data.nb_newsletter || 0;
+          if (totalNl === 0) {
+            try { totalNl = await getBrevoNewsletterCount(); } catch(e) {}
+          }
           _badgeCurrentCounts.newsletter = totalNl;
-          var newNl = totalNl - getLastSeen('newsletter');
+          var newNl = getNewCount('newsletter', totalNl);
           if (newNl > 0) setBadge('newsletter', newNl);
         }
       } catch(e) {}
@@ -5866,7 +5890,8 @@
         var visitRes = await supabase.from('visites_log').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString());
         var todayVisits = visitRes.count || 0;
         _badgeCurrentCounts.visiteurs = todayVisits;
-        if (todayVisits > 0) setBadge('visiteurs', todayVisits);
+        var newVisits = getNewCount('visiteurs', todayVisits);
+        if (newVisits > 0) setBadge('visiteurs', newVisits);
       } catch(e) {}
 
       // --- Disponibilités (absences actives) ---
