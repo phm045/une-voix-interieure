@@ -6060,3 +6060,263 @@ textarea.blog-comments__input {
 .admin-tab-badge--info {
   background: #3498db;
 }
+
+/* ═══════════════════════════════════════════════════
+   OPTIMISATIONS iPHONE / MOBILE (≤480px)
+   ═══════════════════════════════════════════════════ */
+
+/* --- Safe area pour les iPhone avec encoche --- */
+@supports (padding: env(safe-area-inset-top)) {
+  .header { padding-top: env(safe-area-inset-top); }
+  .footer__bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* --- iPhone SE / petits écrans (≤380px) --- */
+@media (max-width: 380px) {
+  .admin-dash-stat-card__label {
+    font-size: 0.65rem;
+  }
+  .admin-dash-stat-card__value {
+    font-size: 1.1rem;
+  }
+  .admin-ca-card__label {
+    font-size: 0.68rem;
+  }
+  .admin-ca-card__value {
+    font-size: 1rem;
+  }
+  .hero__title {
+    font-size: 1.6rem;
+  }
+  .hero__desc {
+    font-size: 0.88rem;
+  }
+}
+
+/* --- Mobile standard iPhone (≤480px) --- */
+@media (max-width: 480px) {
+
+  /* Admin stats : 2 colonnes sur mobile */
+  .admin-dash-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem;
+  }
+  .admin-dash-stat-card {
+    padding: 0.7rem;
+  }
+  .admin-dash-stat-card__label {
+    font-size: 0.7rem;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  /* Admin CA grids : 2 puis 1 colonne */
+  .admin-ca-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem;
+  }
+  .admin-ca-card {
+    padding: 0.75rem 0.5rem;
+  }
+  .admin-ca-card__label {
+    font-size: 0.72rem;
+    word-break: break-word;
+  }
+
+  /* Revenus split : empiler */
+  .admin-revenus-split {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  /* Bénéfices grid */
+  .admin-benef-section .admin-ca-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dépenses grid */
+  #form-depense > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Admin tabs : icônes + badges, pas de labels */
+  .admin-dash-tab {
+    padding: 0.5rem 0.55rem;
+    gap: 0.2rem;
+  }
+  .admin-dash-tab span:first-of-type {
+    display: none;
+  }
+  .admin-tab-badge {
+    margin-left: 0;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+    padding: 0 4px;
+    border-radius: 8px;
+  }
+  .admin-dash-tabs {
+    gap: 0.25rem;
+    justify-content: flex-start;
+  }
+
+  /* Bannière absence : safe padding */
+  .absence-banner__inner {
+    padding: 0.7rem 0.75rem;
+    gap: 0.6rem;
+  }
+  .absence-banner__icon {
+    width: 32px;
+    height: 32px;
+  }
+  .absence-banner__icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .absence-banner__title {
+    font-size: 0.82rem;
+  }
+  .absence-banner__detail {
+    font-size: 0.75rem;
+  }
+
+  /* Footer : zone tactile minimum 44px */
+  .footer__col a {
+    display: block;
+    padding: 0.55rem 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .footer__col {
+    padding-left: 0.5rem;
+  }
+  .footer__socials {
+    gap: 1rem;
+  }
+  .footer__social-link {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .footer__social-link svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Filtres nouveautés : s'assurer que tout est accessible */
+  .nouveautes-filters {
+    padding: 0 0.75rem 0.5rem;
+    gap: 0.3rem;
+    mask-image: linear-gradient(to right, transparent 0, black 0.5rem, black calc(100% - 1.5rem), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 0.5rem, black calc(100% - 1.5rem), transparent 100%);
+  }
+  .nouveautes-filter {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.76rem;
+  }
+
+  /* Contact page : réduire le whitespace */
+  .contact-page .section-header,
+  #contact .section-header {
+    margin-bottom: 1rem;
+  }
+  .contact-cards {
+    gap: 0.75rem;
+  }
+
+  /* Boutons flottants : plus petits et mieux positionnés */
+  .floating-btn,
+  .btn-mute,
+  [class*="floating"],
+  [class*="mute-btn"],
+  .audio-mute-btn {
+    width: 38px !important;
+    height: 38px !important;
+    bottom: 12px !important;
+  }
+
+  /* Services : améliorations cartes */
+  .service-card {
+    margin: 0 0.25rem;
+  }
+
+  /* Compte tabs (client) : scroll horizontal fluide */
+  .compte-tabs {
+    gap: 0.15rem;
+  }
+  .compte-tabs__btn {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+  }
+
+  /* Disponibilités : formulaires mobiles */
+  .dispo-absence-form__row,
+  .dispo-date-form__row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .dispo-time {
+    width: 100%;
+  }
+  .dispo-creneau {
+    gap: 0.35rem;
+  }
+  .dispo-subtabs {
+    gap: 0.3rem;
+  }
+  .dispo-subtab {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.76rem;
+  }
+}
+
+/* --- Correctifs iPhone spécifiques --- */
+
+/* Empêcher le zoom sur les inputs (iOS zoom quand font-size < 16px) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth momentum scrolling pour les zones scrollables */
+.admin-dash-tabs,
+.compte-tabs,
+.nouveautes-filters,
+.dispo-subtabs {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Tap highlight sur iOS */
+a, button, [role="button"] {
+  -webkit-tap-highlight-color: rgba(212, 165, 116, 0.15);
+}
+
+/* Fix pour le safe-area-inset en mode paysage iPhone */
+@media (max-width: 812px) and (orientation: landscape) {
+  .absence-banner__inner {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .footer__bottom {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
