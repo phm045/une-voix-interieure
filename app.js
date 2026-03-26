@@ -8,6 +8,10 @@
   // --- Admin email constant (early definition for auth checks) ---
   var ADMIN_EMAIL = 'philippe.medium45@gmail.com';
 
+  // ⚠️ SÉCURITÉ : La clé secrète Stripe est exposée côté client car le site est statique (GitHub Pages)
+  // sans backend. Idéalement, les appels à l'API Stripe devraient se faire côté serveur.
+  var STRIPE_SECRET_KEY = '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';
+
   // --- Safe storage wrappers (fallback to in-memory when sandboxed) ---
   var _memStore = {};
   var _memSession = {};
@@ -3928,6 +3932,104 @@
   }
 
 
+  // ─── Stripe API helpers for coupon sync ───
+
+  // Known Stripe promo IDs for existing coupons (fallback before Supabase stores them)
+  var KNOWN_STRIPE_PROMOS = {
+    'BIENVENUE': { promo_id: 'promo_1TFNGe2S616qVFR9olKNGNHM', coupon_id: 'IlwJ7Hty' }
+  };
+
+  // Generic Stripe API call helper
+  async function stripeApiCall(endpoint, method, params) {
+    var url = 'https://api.stripe.com/v1' + endpoint;
+    var options = {
+      method: method || 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(STRIPE_SECRET_KEY + ':'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    };
+    if (params) {
+      var body = new URLSearchParams(params).toString();
+      if (method === 'GET') {
+        url += '?' + body;
+        delete options.headers['Content-Type'];
+      } else {
+        options.body = body;
+      }
+    }
+    var resp = await fetch(url, options);
+    var json = await resp.json();
+    if (!resp.ok) {
+      console.error('[Stripe API] Erreur:', json);
+      throw new Error(json.error ? json.error.message : 'Stripe API error');
+    }
+    return json;
+  }
+
+  // Create a Stripe coupon + promotion code, returns { coupon_id, promo_id }
+  async function stripeCreerCouponEtPromo(code, reductionPourcent) {
+    // 1. Create Stripe coupon
+    var coupon = await stripeApiCall('/coupons', 'POST', {
+      percent_off: reductionPourcent,
+      duration: 'once',
+      name: code + ' (-' + reductionPourcent + '%)'
+    });
+    // 2. Create promotion code linked to the coupon
+    var promo = await stripeApiCall('/promotion_codes', 'POST', {
+      coupon: coupon.id,
+      code: code,
+      active: 'true'
+    });
+    return { coupon_id: coupon.id, promo_id: promo.id };
+  }
+
+  // Activate or deactivate a Stripe promotion code
+  async function stripeTogglePromo(promoId, active) {
+    return await stripeApiCall('/promotion_codes/' + promoId, 'POST', {
+      active: active ? 'true' : 'false'
+    });
+  }
+
+  // Find an existing Stripe promo code ID by searching (for coupons that don't have one stored yet)
+  async function stripeTrouverPromoParCode(code) {
+    try {
+      var result = await stripeApiCall('/promotion_codes', 'GET', { code: code, limit: '1' });
+      if (result.data && result.data.length > 0) {
+        return result.data[0];
+      }
+    } catch(e) {
+      console.warn('[Stripe] Recherche promo échouée pour', code, e);
+    }
+    return null;
+  }
+
+  // Get or create the Stripe promo ID for a given coupon row, and save it to Supabase
+  async function obtenirOuCreerStripePromo(coupon) {
+    // Already has a stripe_promo_id stored?
+    if (coupon.stripe_promo_id) return coupon.stripe_promo_id;
+
+    // Check known hardcoded fallbacks
+    var known = KNOWN_STRIPE_PROMOS[coupon.code];
+    if (known) {
+      // Save to Supabase for future use
+      await supabase.from('coupons').update({ stripe_promo_id: known.promo_id, stripe_coupon_id: known.coupon_id }).eq('id', coupon.id);
+      return known.promo_id;
+    }
+
+    // Try to find existing promo on Stripe
+    var existant = await stripeTrouverPromoParCode(coupon.code);
+    if (existant) {
+      await supabase.from('coupons').update({ stripe_promo_id: existant.id, stripe_coupon_id: existant.coupon }).eq('id', coupon.id);
+      return existant.id;
+    }
+
+    // Create new coupon+promo on Stripe
+    var result = await stripeCreerCouponEtPromo(coupon.code, coupon.reduction_pourcent);
+    await supabase.from('coupons').update({ stripe_promo_id: result.promo_id, stripe_coupon_id: result.coupon_id }).eq('id', coupon.id);
+    return result.promo_id;
+  }
+
   // ─── Admin coupon management system ───
 
   // Load coupons list for admin panel
@@ -3982,19 +4084,39 @@
         }).join('') +
         '</div>';
 
-      // Attach toggle/delete handlers
+      // Build a lookup map for coupon data (needed for Stripe sync)
+      var couponMap = {};
+      data.forEach(function(c) { couponMap[c.id] = c; });
+
+      // Attach toggle/delete handlers with Stripe sync
       container.querySelectorAll('.admin-coupon-toggle').forEach(function(btn) {
         btn.addEventListener('click', async function() {
           var couponId = this.getAttribute('data-coupon-id');
           var action = this.getAttribute('data-action');
+          var coupon = couponMap[couponId];
 
           if (action === 'delete') {
-            if (!confirm('Supprimer ce coupon d\u00e9finitivement ?')) return;
+            if (!confirm('Supprimer ce coupon définitivement ?')) return;
+            // Deactivate on Stripe before deleting
+            try {
+              var promoId = await obtenirOuCreerStripePromo(coupon);
+              if (promoId) await stripeTogglePromo(promoId, false);
+            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr); }
             await supabase.from('coupons_utilises').delete().eq('coupon_id', couponId);
             await supabase.from('coupons').delete().eq('id', couponId);
           } else if (action === 'deactivate') {
             await supabase.from('coupons').update({ actif: false }).eq('id', couponId);
+            // Deactivate promo on Stripe
+            try {
+              var promoId = await obtenirOuCreerStripePromo(coupon);
+              if (promoId) await stripeTogglePromo(promoId, false);
+            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation promo:', stripeErr); }
           } else if (action === 'activate') {
+            // Activate on Stripe (create if needed)
+            try {
+              var promoId = await obtenirOuCreerStripePromo(coupon);
+              if (promoId) await stripeTogglePromo(promoId, true);
+            } catch(stripeErr) { console.warn('[Stripe] Erreur activation promo:', stripeErr); }
             await supabase.from('coupons').update({ actif: true }).eq('id', couponId);
           }
 
@@ -4035,17 +4157,29 @@
         data.valide_jusqu_au = new Date(expiryVal).toISOString();
       }
 
-      var result = await supabase.from('coupons').insert([data]);
+      // Create coupon + promo on Stripe first
+      var stripeIds = null;
+      try {
+        stripeIds = await stripeCreerCouponEtPromo(code, reduction);
+        data.stripe_promo_id = stripeIds.promo_id;
+        data.stripe_coupon_id = stripeIds.coupon_id;
+      } catch(stripeErr) {
+        console.warn('[Stripe] Erreur création coupon Stripe:', stripeErr);
+        // Continue with Supabase creation even if Stripe fails
+      }
+
+      var result = await supabase.from('coupons').insert([data]).select();
       if (result.error) {
         if (result.error.message.indexOf('unique') !== -1 || result.error.message.indexOf('duplicate') !== -1) {
-          showAdminMsg('admin-coupon-msg', 'Ce code coupon existe d\u00e9j\u00e0.', true);
+          showAdminMsg('admin-coupon-msg', 'Ce code coupon existe déjà.', true);
         } else {
           showAdminMsg('admin-coupon-msg', 'Erreur : ' + result.error.message, true);
         }
         return;
       }
 
-      showAdminMsg('admin-coupon-msg', 'Coupon ' + code + ' cr\u00e9\u00e9 avec succ\u00e8s !', false);
+      var stripeMsg = stripeIds ? ' (+ Stripe synchro ✓)' : ' (Stripe non synchronisé)';
+      showAdminMsg('admin-coupon-msg', 'Coupon ' + code + ' créé avec succès !' + stripeMsg, false);
       couponForm.reset();
       chargerCouponsAdmin();
     });
@@ -4630,30 +4764,50 @@
       html += '</div>';
       container.innerHTML = html;
       adminCacheSet('tab_coupons', html);
-      // Attach toggle handlers
+      // Build coupon lookup map for Stripe sync
+      var couponMap = {};
+      data.forEach(function(c) { couponMap[c.id] = c; });
+      // Attach toggle handlers with Stripe sync
       var toggleBtns = container.querySelectorAll('[data-toggle-coupon]');
       for (var t = 0; t < toggleBtns.length; t++) {
-        toggleBtns[t].addEventListener('click', function() {
+        toggleBtns[t].addEventListener('click', async function() {
           var couponId = this.getAttribute('data-toggle-coupon');
           var action = this.getAttribute('data-coupon-action');
           var newVal = (action === 'activate');
-          supabase.from('coupons').update({ actif: newVal }).eq('id', couponId).then(function() {
-            chargerAdminCouponsTab();
-            chargerAdminStats();
-          });
+          var coupon = couponMap[couponId];
+          if (newVal) {
+            // Activate: sync Stripe first (create promo if needed), then update Supabase
+            try {
+              var promoId = await obtenirOuCreerStripePromo(coupon);
+              if (promoId) await stripeTogglePromo(promoId, true);
+            } catch(stripeErr) { console.warn('[Stripe] Erreur activation promo:', stripeErr); }
+          } else {
+            // Deactivate: update Supabase, then deactivate on Stripe
+            try {
+              var promoId = await obtenirOuCreerStripePromo(coupon);
+              if (promoId) await stripeTogglePromo(promoId, false);
+            } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation promo:', stripeErr); }
+          }
+          await supabase.from('coupons').update({ actif: newVal }).eq('id', couponId);
+          chargerAdminCouponsTab();
+          chargerAdminStats();
         });
       }
       var delBtns = container.querySelectorAll('[data-del-coupon]');
       for (var d = 0; d < delBtns.length; d++) {
-        delBtns[d].addEventListener('click', function() {
+        delBtns[d].addEventListener('click', async function() {
           var couponId = this.getAttribute('data-del-coupon');
-          if (!confirm('Supprimer ce coupon d\u00e9finitivement ?')) return;
-          supabase.from('coupons_utilises').delete().eq('coupon_id', couponId).then(function() {
-            supabase.from('coupons').delete().eq('id', couponId).then(function() {
-              chargerAdminCouponsTab();
-              chargerAdminStats();
-            });
-          });
+          if (!confirm('Supprimer ce coupon définitivement ?')) return;
+          var coupon = couponMap[couponId];
+          // Deactivate on Stripe before deleting
+          try {
+            var promoId = await obtenirOuCreerStripePromo(coupon);
+            if (promoId) await stripeTogglePromo(promoId, false);
+          } catch(stripeErr) { console.warn('[Stripe] Erreur désactivation lors suppression:', stripeErr); }
+          await supabase.from('coupons_utilises').delete().eq('coupon_id', couponId);
+          await supabase.from('coupons').delete().eq('id', couponId);
+          chargerAdminCouponsTab();
+          chargerAdminStats();
         });
       }
     } catch(e) {
