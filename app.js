@@ -2102,6 +2102,9 @@ function getComments(articleId) {
 
       console.log('[Stripe] Commande enregistr\u00e9e:', serviceName, montant + '\u20ac');
 
+      // Vider le panier apr\u00e8s paiement r\u00e9ussi
+      try { localStorage.removeItem('lumiere_cart'); } catch(ce) {}
+
       // Naviguer vers Mon compte > Commandes
       showPage('mon-compte');
       setTimeout(function () {
@@ -4261,82 +4264,269 @@ function getComments(articleId) {
     });
   })();
 
-  // Buy button: create Stripe Checkout Session and redirect
-  var buyBtn = document.getElementById('product-detail-buy');
-  if (buyBtn) {
-    buyBtn.addEventListener('click', async function() {
+  // ─── PANIER (CART SYSTEM) ───
+  var CART_KEY = 'lumiere_cart';
+
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
+    catch(e) { return []; }
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    updateCartUI();
+  }
+
+  function addToCart(product) {
+    var cart = getCart();
+    var existing = null;
+    for (var i = 0; i < cart.length; i++) {
+      if (cart[i].slug === product.slug) { existing = cart[i]; break; }
+    }
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      cart.push({
+        slug: product.slug,
+        name: product.name,
+        price: parseFloat(product.price),
+        image_url: product.image_url || 'crystals-nature.png',
+        category: product.category || '',
+        qty: 1
+      });
+    }
+    saveCart(cart);
+    showCartToast(product.name + ' ajout\u00e9 au panier');
+  }
+
+  function removeFromCart(slug) {
+    var cart = getCart().filter(function(item) { return item.slug !== slug; });
+    saveCart(cart);
+  }
+
+  function updateCartQty(slug, delta) {
+    var cart = getCart();
+    for (var i = 0; i < cart.length; i++) {
+      if (cart[i].slug === slug) {
+        cart[i].qty += delta;
+        if (cart[i].qty <= 0) { cart.splice(i, 1); }
+        break;
+      }
+    }
+    saveCart(cart);
+  }
+
+  function getCartTotal() {
+    var cart = getCart();
+    var total = 0;
+    for (var i = 0; i < cart.length; i++) total += cart[i].price * cart[i].qty;
+    return total;
+  }
+
+  function getCartCount() {
+    var cart = getCart();
+    var count = 0;
+    for (var i = 0; i < cart.length; i++) count += cart[i].qty;
+    return count;
+  }
+
+  // Update cart badge + drawer content
+  function updateCartUI() {
+    var count = getCartCount();
+    var countEl = document.getElementById('cart-count');
+    if (countEl) {
+      countEl.textContent = count;
+      countEl.hidden = count === 0;
+    }
+
+    var itemsEl = document.getElementById('cart-items');
+    var emptyEl = document.getElementById('cart-empty');
+    var footerEl = document.getElementById('cart-footer');
+    var totalEl = document.getElementById('cart-total');
+    var cart = getCart();
+
+    if (!itemsEl) return;
+
+    // Clear existing items (keep empty msg)
+    var oldItems = itemsEl.querySelectorAll('.cart-item');
+    for (var o = 0; o < oldItems.length; o++) oldItems[o].remove();
+
+    if (cart.length === 0) {
+      if (emptyEl) emptyEl.hidden = false;
+      if (footerEl) footerEl.hidden = true;
+      return;
+    }
+
+    if (emptyEl) emptyEl.hidden = true;
+    if (footerEl) footerEl.hidden = false;
+
+    for (var i = 0; i < cart.length; i++) {
+      var item = cart[i];
+      var div = document.createElement('div');
+      div.className = 'cart-item';
+      div.setAttribute('data-cart-slug', item.slug);
+      div.innerHTML =
+        '<div class="cart-item__img"><img src="' + item.image_url + '" alt="' + item.name + '" loading="lazy"></div>' +
+        '<div class="cart-item__info">' +
+          '<div class="cart-item__name">' + item.name + '</div>' +
+          '<div class="cart-item__price">' + (item.price * item.qty).toFixed(2) + ' \u20ac</div>' +
+          '<div class="cart-item__controls">' +
+            '<button class="cart-item__qty-btn" data-cart-minus="' + item.slug + '">\u2212</button>' +
+            '<span class="cart-item__qty">' + item.qty + '</span>' +
+            '<button class="cart-item__qty-btn" data-cart-plus="' + item.slug + '">+</button>' +
+          '</div>' +
+        '</div>' +
+        '<button class="cart-item__remove" data-cart-remove="' + item.slug + '" title="Retirer">\u2715</button>';
+      itemsEl.appendChild(div);
+    }
+
+    if (totalEl) totalEl.textContent = getCartTotal().toFixed(2) + ' \u20ac';
+
+    // Attach event handlers
+    itemsEl.querySelectorAll('[data-cart-minus]').forEach(function(btn) {
+      btn.onclick = function() { updateCartQty(btn.getAttribute('data-cart-minus'), -1); };
+    });
+    itemsEl.querySelectorAll('[data-cart-plus]').forEach(function(btn) {
+      btn.onclick = function() { updateCartQty(btn.getAttribute('data-cart-plus'), 1); };
+    });
+    itemsEl.querySelectorAll('[data-cart-remove]').forEach(function(btn) {
+      btn.onclick = function() { removeFromCart(btn.getAttribute('data-cart-remove')); };
+    });
+  }
+
+  // Cart drawer open/close
+  function openCartDrawer() {
+    var drawer = document.getElementById('cart-drawer');
+    if (drawer) { drawer.hidden = false; document.body.style.overflow = 'hidden'; }
+    updateCartUI();
+  }
+
+  function closeCartDrawer() {
+    var drawer = document.getElementById('cart-drawer');
+    if (drawer) { drawer.hidden = true; document.body.style.overflow = ''; }
+  }
+
+  (function initCartDrawerEvents() {
+    var toggle = document.getElementById('cart-toggle');
+    var closeBtn = document.getElementById('cart-close');
+    var backdrop = document.querySelector('.cart-drawer__backdrop');
+    if (toggle) toggle.addEventListener('click', openCartDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeCartDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeCartDrawer);
+    document.addEventListener('keydown', function(e) {
+      var drawer = document.getElementById('cart-drawer');
+      if (e.key === 'Escape' && drawer && !drawer.hidden) closeCartDrawer();
+    });
+  })();
+
+  // Toast notification
+  var _toastTimer = null;
+  function showCartToast(message) {
+    var existing = document.querySelector('.cart-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.className = 'cart-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { toast.classList.add('cart-toast--visible'); });
+    });
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function() {
+      toast.classList.remove('cart-toast--visible');
+      setTimeout(function() { if (toast.parentNode) toast.remove(); }, 400);
+    }, 2500);
+  }
+
+  // Add to cart button (in product overlay)
+  var addCartBtn = document.getElementById('product-detail-add-cart');
+  if (addCartBtn) {
+    addCartBtn.addEventListener('click', function() {
       var overlay = document.getElementById('product-detail-overlay');
-      var productName = overlay.getAttribute('data-product-name');
-      var productPrice = parseFloat(overlay.getAttribute('data-product-price'));
-      var productImage = overlay.getAttribute('data-product-image');
-      var productSlug = overlay.getAttribute('data-product-slug');
+      var slug = overlay.getAttribute('data-product-slug');
+      var name = overlay.getAttribute('data-product-name');
+      var price = overlay.getAttribute('data-product-price');
+      var image = overlay.getAttribute('data-product-image');
+      if (!slug || !name || !price) return;
+      addToCart({
+        slug: slug,
+        name: name,
+        price: parseFloat(price),
+        image_url: image || 'crystals-nature.png',
+        category: ''
+      });
+      closeProductDetail();
+    });
+  }
 
-      if (!productName || !productPrice) return;
+  // Checkout: create Stripe Checkout Session with all cart items
+  var checkoutBtn = document.getElementById('cart-checkout');
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', async function() {
+      var cart = getCart();
+      if (cart.length === 0) return;
 
-      buyBtn.disabled = true;
-      buyBtn.textContent = 'Redirection en cours...';
+      checkoutBtn.disabled = true;
+      checkoutBtn.textContent = 'Redirection en cours...';
 
       try {
         var siteUrl = 'https://phm045.github.io/Lumiere-interieur';
-        var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(productSlug);
+        var slugs = cart.map(function(item) { return item.slug; }).join(',');
+        var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(slugs);
         var cancelUrl = siteUrl + '/#boutique';
-
-        // Build image URLs array
-        var images = [];
-        if (productImage && productImage.indexOf('http') === 0) {
-          images.push(productImage);
-        }
 
         var params = {
           'mode': 'payment',
           'success_url': successUrl,
-          'cancel_url': cancelUrl,
-          'line_items[0][price_data][currency]': 'eur',
-          'line_items[0][price_data][product_data][name]': productName,
-          'line_items[0][price_data][unit_amount]': Math.round(productPrice * 100),
-          'line_items[0][quantity]': '1'
+          'cancel_url': cancelUrl
         };
 
-        if (images.length > 0) {
-          params['line_items[0][price_data][product_data][images][0]'] = images[0];
+        // Add each cart item as a line item
+        for (var i = 0; i < cart.length; i++) {
+          var item = cart[i];
+          params['line_items[' + i + '][price_data][currency]'] = 'eur';
+          params['line_items[' + i + '][price_data][product_data][name]'] = item.name;
+          params['line_items[' + i + '][price_data][unit_amount]'] = Math.round(item.price * 100);
+          params['line_items[' + i + '][quantity]'] = String(item.qty);
+          if (item.image_url && item.image_url.indexOf('http') === 0) {
+            params['line_items[' + i + '][price_data][product_data][images][0]'] = item.image_url;
+          }
         }
 
         // Check for active coupon
-        var coupon = null;
         try {
-          coupon = await getActiveCouponForServices();
+          var coupon = await getActiveCouponForServices();
           if (coupon && coupon.applicable_a !== 'services') {
-            // Coupon is valid for boutique
-          } else {
-            coupon = null;
+            var promoMap = getStripePromoMap ? getStripePromoMap() : {};
+            var stripePromoId = promoMap[coupon.code];
+            if (stripePromoId) {
+              params['discounts[0][promotion_code]'] = stripePromoId;
+            }
           }
-        } catch(ce) { coupon = null; }
-
-        if (coupon) {
-          // Try to find the Stripe promo ID
-          var promoMap = getStripePromoMap ? getStripePromoMap() : {};
-          var stripePromoId = promoMap[coupon.code];
-          if (stripePromoId) {
-            params['discounts[0][promotion_code]'] = stripePromoId;
-          }
-        }
+        } catch(ce) {}
 
         var session = await stripeApiCall('/checkout/sessions', 'POST', params);
 
         if (session && session.url) {
+          // Clear cart on successful redirect
+          localStorage.removeItem(CART_KEY);
+          updateCartUI();
           window.location.href = session.url;
         } else {
           throw new Error('URL de paiement non re\u00e7ue');
         }
       } catch(err) {
-        console.error('[Stripe Boutique] Erreur:', err);
+        console.error('[Stripe Panier] Erreur:', err);
         alert('Erreur lors de la cr\u00e9ation du paiement. Veuillez r\u00e9essayer.');
       } finally {
-        buyBtn.disabled = false;
-        buyBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:0.4rem"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Payer par carte bancaire';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:0.4rem"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Valider ma commande';
       }
     });
   }
+
+  // Initialize cart UI on page load
+  updateCartUI();
 
   // --- Boutique form submit ---
   var boutiqueForm = document.getElementById('admin-boutique-form');
