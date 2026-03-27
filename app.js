@@ -2069,6 +2069,22 @@ function getComments(articleId) {
         var infos = STRIPE_SERVICES[serviceKey];
         serviceName = infos.service;
         montant = infos.montant;
+      } else if (serviceKey && serviceKey.indexOf('boutique_') === 0) {
+        // Boutique product payment
+        var productSlug = decodeURIComponent(serviceKey.replace('boutique_', ''));
+        try {
+          var stripeSession = await stripeApiCall('/checkout/sessions/' + sessionId, 'GET');
+          if (stripeSession) {
+            serviceName = 'Boutique: ' + (productSlug || 'Produit');
+            montant = (stripeSession.amount_total || 0) / 100;
+          } else {
+            serviceName = 'Boutique: ' + productSlug;
+            montant = 0;
+          }
+        } catch(bErr) {
+          serviceName = 'Boutique: ' + productSlug;
+          montant = 0;
+        }
       } else {
         console.log('[Stripe] Service key inconnu:', serviceKey);
         return;
@@ -3936,11 +3952,18 @@ function getComments(articleId) {
         if (coming && visibleProducts.length > 0) coming.style.display = 'none';
         visibleProducts.forEach(function(product) {
           product.extra_images = extraImagesMap[product.slug] || [];
+          _loadedProducts[product.slug] = product; // Cache for overlay
           if (prodGrid) {
             var card = createProductCardElement(product, isAdmin);
             prodGrid.appendChild(card);
             var delBtn = card.querySelector('.admin-delete-btn');
             if (delBtn) attachDeleteHandler(delBtn);
+            // Click to open product detail (visitors)
+            card.addEventListener('click', function(e) {
+              if (e.target.closest('.admin-delete-btn')) return;
+              var slug = card.getAttribute('data-product-slug');
+              if (slug && _loadedProducts[slug]) openProductDetail(_loadedProducts[slug]);
+            });
           }
         });
       }
@@ -4155,6 +4178,166 @@ function getComments(articleId) {
     });
   }
 
+  // --- Product Detail Overlay (fiche produit + paiement) ---
+  var _loadedProducts = {}; // Cache: slug -> product data with extra_images
+
+  function openProductDetail(productData) {
+    var overlay = document.getElementById('product-detail-overlay');
+    if (!overlay) return;
+
+    // Fill product info
+    var nameEl = document.getElementById('product-detail-name');
+    var catEl = document.getElementById('product-detail-category');
+    var descEl = document.getElementById('product-detail-desc');
+    var priceEl = document.getElementById('product-detail-price');
+    var galleryEl = document.getElementById('product-detail-gallery');
+
+    if (nameEl) nameEl.textContent = productData.name;
+    if (catEl) catEl.textContent = productData.category;
+    if (descEl) descEl.textContent = productData.description;
+    if (priceEl) priceEl.textContent = parseFloat(productData.price).toFixed(2) + ' \u20ac';
+
+    // Build gallery with all images
+    var allImages = [productData.image_url || 'crystals-nature.png'];
+    if (productData.extra_images && productData.extra_images.length > 0) {
+      for (var i = 0; i < productData.extra_images.length; i++) {
+        allImages.push(productData.extra_images[i].image_url);
+      }
+    }
+
+    if (galleryEl) {
+      if (allImages.length > 1) {
+        var slidesHTML = '';
+        for (var si = 0; si < allImages.length; si++) {
+          slidesHTML += '<div class="product-carousel__slide"><img src="' + allImages[si] + '" alt="' + productData.name + ' - photo ' + (si + 1) + '" loading="lazy"></div>';
+        }
+        var dotsHTML = '<div class="product-carousel__dots">';
+        for (var di = 0; di < allImages.length; di++) {
+          dotsHTML += '<button class="product-carousel__dot' + (di === 0 ? ' product-carousel__dot--active' : '') + '" data-slide="' + di + '"></button>';
+        }
+        dotsHTML += '</div>';
+        galleryEl.innerHTML =
+          '<div class="product-carousel" data-carousel>' +
+            '<div class="product-carousel__track">' + slidesHTML + '</div>' +
+            '<button class="product-carousel__btn product-carousel__btn--prev" data-carousel-prev>&#10094;</button>' +
+            '<button class="product-carousel__btn product-carousel__btn--next" data-carousel-next>&#10095;</button>' +
+            dotsHTML +
+          '</div>';
+        initProductCarousel(galleryEl);
+      } else {
+        galleryEl.innerHTML = '<img src="' + allImages[0] + '" alt="' + productData.name + '">';
+      }
+    }
+
+    // Store current product for buy button
+    overlay.setAttribute('data-product-slug', productData.slug);
+    overlay.setAttribute('data-product-name', productData.name);
+    overlay.setAttribute('data-product-price', productData.price);
+    overlay.setAttribute('data-product-image', productData.image_url || 'crystals-nature.png');
+
+    // Show overlay
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeProductDetail() {
+    var overlay = document.getElementById('product-detail-overlay');
+    if (overlay) {
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Close handlers for product overlay
+  (function() {
+    var overlay = document.getElementById('product-detail-overlay');
+    if (!overlay) return;
+    var closeBtn = overlay.querySelector('.product-overlay__close');
+    var backdrop = overlay.querySelector('.product-overlay__backdrop');
+    if (closeBtn) closeBtn.addEventListener('click', closeProductDetail);
+    if (backdrop) backdrop.addEventListener('click', closeProductDetail);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !overlay.hidden) closeProductDetail();
+    });
+  })();
+
+  // Buy button: create Stripe Checkout Session and redirect
+  var buyBtn = document.getElementById('product-detail-buy');
+  if (buyBtn) {
+    buyBtn.addEventListener('click', async function() {
+      var overlay = document.getElementById('product-detail-overlay');
+      var productName = overlay.getAttribute('data-product-name');
+      var productPrice = parseFloat(overlay.getAttribute('data-product-price'));
+      var productImage = overlay.getAttribute('data-product-image');
+      var productSlug = overlay.getAttribute('data-product-slug');
+
+      if (!productName || !productPrice) return;
+
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Redirection en cours...';
+
+      try {
+        var siteUrl = 'https://phm045.github.io/Lumiere-interieur';
+        var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(productSlug);
+        var cancelUrl = siteUrl + '/#boutique';
+
+        // Build image URLs array
+        var images = [];
+        if (productImage && productImage.indexOf('http') === 0) {
+          images.push(productImage);
+        }
+
+        var params = {
+          'mode': 'payment',
+          'success_url': successUrl,
+          'cancel_url': cancelUrl,
+          'line_items[0][price_data][currency]': 'eur',
+          'line_items[0][price_data][product_data][name]': productName,
+          'line_items[0][price_data][unit_amount]': Math.round(productPrice * 100),
+          'line_items[0][quantity]': '1'
+        };
+
+        if (images.length > 0) {
+          params['line_items[0][price_data][product_data][images][0]'] = images[0];
+        }
+
+        // Check for active coupon
+        var coupon = null;
+        try {
+          coupon = await getActiveCouponForServices();
+          if (coupon && coupon.applicable_a !== 'services') {
+            // Coupon is valid for boutique
+          } else {
+            coupon = null;
+          }
+        } catch(ce) { coupon = null; }
+
+        if (coupon) {
+          // Try to find the Stripe promo ID
+          var promoMap = getStripePromoMap ? getStripePromoMap() : {};
+          var stripePromoId = promoMap[coupon.code];
+          if (stripePromoId) {
+            params['discounts[0][promotion_code]'] = stripePromoId;
+          }
+        }
+
+        var session = await stripeApiCall('/checkout/sessions', 'POST', params);
+
+        if (session && session.url) {
+          window.location.href = session.url;
+        } else {
+          throw new Error('URL de paiement non re\u00e7ue');
+        }
+      } catch(err) {
+        console.error('[Stripe Boutique] Erreur:', err);
+        alert('Erreur lors de la cr\u00e9ation du paiement. Veuillez r\u00e9essayer.');
+      } finally {
+        buyBtn.disabled = false;
+        buyBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:0.4rem"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Payer par carte bancaire';
+      }
+    });
+  }
+
   // --- Boutique form submit ---
   var boutiqueForm = document.getElementById('admin-boutique-form');
   if (boutiqueForm) {
@@ -4220,6 +4403,7 @@ function getComments(articleId) {
         }
       }
       data.extra_images = extraImages;
+      _loadedProducts[slug] = data; // Cache for overlay
 
       // Add product card
       var prodGrid = document.getElementById('boutique-products-grid');
@@ -4228,6 +4412,11 @@ function getComments(articleId) {
         prodGrid.appendChild(card);
         var delBtn = card.querySelector('.admin-delete-btn');
         if (delBtn) attachDeleteHandler(delBtn);
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.admin-delete-btn')) return;
+          var pslug = card.getAttribute('data-product-slug');
+          if (pslug && _loadedProducts[pslug]) openProductDetail(_loadedProducts[pslug]);
+        });
       }
 
       // Hide "coming soon" placeholder only if product is visible
