@@ -3748,12 +3748,14 @@ function getComments(articleId) {
   // --- Create a boutique product card DOM element from data ---
   function createProductCardElement(data, isAdmin) {
     var card = document.createElement('div');
-    card.className = 'boutique-product-card fade-in';
+    card.className = 'boutique-product-card fade-in' + (isAdmin && data.visible === false ? ' boutique-product-card--hidden' : '');
     card.setAttribute('data-product-slug', data.slug);
     card.setAttribute('data-dynamic', 'true');
+    var hiddenBadge = (isAdmin && data.visible === false) ? '<span class="boutique-product-card__badge-hidden">Masqué</span>' : '';
     card.innerHTML =
       '<div class="boutique-product-card__image">' +
         (isAdmin ? '<button class="admin-delete-btn" data-delete-type="boutique" data-delete-slug="' + data.slug + '" title="Supprimer">\ud83d\uddd1\ufe0f</button>' : '') +
+        hiddenBadge +
         '<img src="' + (data.image_url || 'crystals-nature.png') + '" alt="' + data.name + '" width="640" height="400" loading="lazy">' +
       '</div>' +
       '<div class="boutique-product-card__content">' +
@@ -3840,10 +3842,12 @@ function getComments(articleId) {
     try {
       var prodResult = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
       if (!prodResult.error && prodResult.data && prodResult.data.length > 0) {
+        // Filter: visitors only see visible products, admin sees all
+        var visibleProducts = isAdmin ? prodResult.data : prodResult.data.filter(function(p) { return p.visible !== false; });
         var prodGrid = document.getElementById('boutique-products-grid');
         var coming = document.querySelector('.boutique-coming');
-        if (coming) coming.style.display = 'none';
-        prodResult.data.forEach(function(product) {
+        if (coming && visibleProducts.length > 0) coming.style.display = 'none';
+        visibleProducts.forEach(function(product) {
           if (prodGrid) {
             var card = createProductCardElement(product, isAdmin);
             prodGrid.appendChild(card);
@@ -4062,13 +4066,15 @@ function getComments(articleId) {
         imageUrl = 'crystals-nature.png';
       }
 
+      var isVisible = fd.get('visible') === 'true';
       var data = {
         slug: slug,
         name: name,
         description: fd.get('description').trim(),
         price: parseFloat(fd.get('price')),
         category: fd.get('category').trim(),
-        image_url: imageUrl
+        image_url: imageUrl,
+        visible: isVisible
       };
 
       var result = await supabase.from('boutique_products').insert([data]);
@@ -4086,18 +4092,20 @@ function getComments(articleId) {
         if (delBtn) attachDeleteHandler(delBtn);
       }
 
-      // Hide "coming soon" placeholder
-      var coming = document.querySelector('.boutique-coming');
-      if (coming) coming.style.display = 'none';
+      // Hide "coming soon" placeholder only if product is visible
+      if (isVisible) {
+        var coming = document.querySelector('.boutique-coming');
+        if (coming) coming.style.display = 'none';
+      }
 
       // Refresh feed
       var feedGrid = document.getElementById('nouveautes-grid');
       if (feedGrid) { feedGrid.innerHTML = ''; }
       if (typeof window.__populateNouveautes === 'function') window.__populateNouveautes();
 
-      showAdminMsg('admin-boutique-msg', 'Produit publi\u00e9 avec succ\u00e8s !', false);
-      // Envoyer newsletter aux abonnes
-      envoyerNewsletterAbonnes('boutique', data.name);
+      showAdminMsg('admin-boutique-msg', isVisible ? 'Produit publi\u00e9 avec succ\u00e8s !' : 'Produit enregistr\u00e9 (masqu\u00e9)', false);
+      // Envoyer newsletter seulement si visible
+      if (isVisible) envoyerNewsletterAbonnes('boutique', data.name);
       setTimeout(function() { closeModal('admin-modal-boutique'); }, 1500);
     });
   }
@@ -4845,15 +4853,20 @@ function getComments(articleId) {
         '<div class="admin-dash-table__cell">Nom</div>' +
         '<div class="admin-dash-table__cell">Cat\u00e9gorie</div>' +
         '<div class="admin-dash-table__cell">Prix</div>' +
+        '<div class="admin-dash-table__cell">Statut</div>' +
         '<div class="admin-dash-table__cell">Actions</div>' +
         '</div>';
       for (var i = 0; i < data.length; i++) {
         var p = data[i];
-        html += '<div class="admin-dash-table__row">' +
+        var statusBadge = p.visible === false
+          ? '<span class="admin-dash-badge admin-dash-badge--warning">Masqu\u00e9</span>'
+          : '<span class="admin-dash-badge admin-dash-badge--success">Visible</span>';
+        html += '<div class="admin-dash-table__row' + (p.visible === false ? ' admin-dash-table__row--muted' : '') + '">' +
           '<div class="admin-dash-table__cell admin-dash-table__cell--img" data-label="Image"><img src="' + escHtml(p.image_url || 'crystals-nature.png') + '" alt="" loading="lazy"></div>' +
           '<div class="admin-dash-table__cell" data-label="Nom">' + escHtml(p.name) + '</div>' +
           '<div class="admin-dash-table__cell" data-label="Cat\u00e9gorie"><span class="admin-dash-badge admin-dash-badge--neutral">' + escHtml(p.category) + '</span></div>' +
           '<div class="admin-dash-table__cell" data-label="Prix">' + parseFloat(p.price).toFixed(2) + ' \u20ac</div>' +
+          '<div class="admin-dash-table__cell" data-label="Statut">' + statusBadge + '</div>' +
           '<div class="admin-dash-table__cell" data-label="Actions"><div class="admin-dash-btn-group">' +
             '<button class="admin-dash-btn-sm admin-dash-btn-sm--edit" data-edit-prod="' + escHtml(p.slug) + '">Modifier</button>' +
             '<button class="admin-dash-btn-sm admin-dash-btn-sm--delete" data-del-prod="' + escHtml(p.slug) + '">Supprimer</button>' +
@@ -4907,6 +4920,9 @@ function getComments(articleId) {
         var input = form.querySelector('[name="' + key + '"]');
         if (input) input.value = fields[key] || '';
       }
+      // Set visible toggle
+      var visibleSelect = form.querySelector('[name="visible"]');
+      if (visibleSelect) visibleSelect.value = (p.visible !== false) ? 'true' : 'false';
       var imgSelect = form.querySelector('[name="image_url"]');
       if (imgSelect) {
         var opts = imgSelect.options;
@@ -5660,7 +5676,8 @@ function getComments(articleId) {
             description: fd.get('description').trim(),
             price: parseFloat(fd.get('price')),
             category: fd.get('category').trim(),
-            image_url: imageUrl || 'crystals-nature.png'
+            image_url: imageUrl || 'crystals-nature.png',
+            visible: fd.get('visible') === 'true'
           };
 
           var res = await supabase.from('boutique_products').update(updateData).eq('slug', editSlug);

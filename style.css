@@ -4764,6 +4764,29 @@ textarea.blog-comments__input {
   margin-top: 0.75rem;
 }
 
+/* ─── Hidden product styles (admin) ─── */
+.boutique-product-card--hidden {
+  opacity: 0.55;
+  position: relative;
+}
+.boutique-product-card__badge-hidden {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  z-index: 2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.admin-dash-table__row--muted {
+  opacity: 0.6;
+}
+
 /* ─── Admin Delete Button ─── */
 .admin-delete-btn {
   position: absolute;

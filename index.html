@@ -3065,6 +3065,14 @@ Cal("init", "consultations", { origin: "https://app.cal.eu" });
           <img id="admin-boutique-preview-img" style="max-width:200px;max-height:150px;border-radius:8px;object-fit:cover" alt="Aperçu">
         </div>
       </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Visibilité</label>
+        <select class="admin-modal__select" name="visible">
+          <option value="false">🔒 Masqué (brouillon)</option>
+          <option value="true">👁️ Visible pour les visiteurs</option>
+        </select>
+        <p style="font-size:0.8rem;color:#999;margin-top:0.3rem">Un produit masqué n'apparaîtra que dans votre panneau d'administration.</p>
+      </div>
       <div class="admin-modal__message" id="admin-boutique-msg" hidden></div>
       <button type="submit" class="btn btn--primary admin-modal__submit">Publier le produit</button>
     </form>
