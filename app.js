@@ -1926,7 +1926,11 @@ function getComments(articleId) {
 
   // Map des Payment Links Stripe pour les produits boutique (slug -> lien)
   var BOUTIQUE_STRIPE_LINKS = {
-    'pendule-spirale-dore': 'https://buy.stripe.com/4gMcMYgbleXL4GaadXeAg0a'
+    'pendule-spirale-dore': 'https://buy.stripe.com/4gMcMYgbleXL4GaadXeAg0a',
+    'amethyste-pierre-roulee': 'https://buy.stripe.com/4gM14gcZ9bLzgoSbi1eAg0f',
+    'sauge-blanche-baton-de-purification': 'https://buy.stripe.com/7sY3co7EP4j7goS99TeAg0d',
+    'quartz-rose-pierre-brute': 'https://buy.stripe.com/4gMdR21grbLzfkO2LveAg0e',
+    'tourmaline-noire-pierre-de-protection': 'https://buy.stripe.com/6oUcMY6AL3f3c8CeudeAg0c'
   };
 
   // Map des liens Stripe vers les noms de services
@@ -3983,24 +3987,65 @@ function getComments(articleId) {
     } catch(e) { /* table may not exist yet */ }
 
     // Load boutique products + their extra images
+    // Produits démo (visibles uniquement pour l'admin, utilisés si la table Supabase est vide)
+    var DEMO_PRODUCTS = [
+      {
+        slug: 'amethyste-pierre-roulee', name: 'Améthyste - Pierre roulée',
+        description: 'Pierre roulée d\'améthyste naturelle. Favorise l\'intuition, la sérénité et la méditation. Taille : 2-3 cm environ.',
+        price: 8.90, category: 'Cristaux', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['amethyste-pierre-roulee'], visible: false, _demo: true
+      },
+      {
+        slug: 'quartz-rose-pierre-brute', name: 'Quartz Rose - Pierre brute',
+        description: 'Pierre brute de quartz rose naturel. Pierre de l\'amour inconditionnel et de la paix intérieure. Taille : 3-5 cm environ.',
+        price: 12.90, category: 'Cristaux', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['quartz-rose-pierre-brute'], visible: false, _demo: true
+      },
+      {
+        slug: 'tourmaline-noire-pierre-de-protection', name: 'Tourmaline Noire - Pierre de protection',
+        description: 'Tourmaline noire naturelle, pierre de protection par excellence. Absorbe les énergies négatives et ancrage. Taille : 2-4 cm environ.',
+        price: 14.90, category: 'Cristaux', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['tourmaline-noire-pierre-de-protection'], visible: false, _demo: true
+      },
+      {
+        slug: 'sauge-blanche-baton-de-purification', name: 'Sauge Blanche - Bâton de purification',
+        description: 'Bâton de sauge blanche de Californie pour la purification énergétique des espaces et des personnes. Environ 10 cm.',
+        price: 7.50, category: 'Encens & Purification', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['sauge-blanche-baton-de-purification'], visible: false, _demo: true
+      },
+      {
+        slug: 'pendule-spirale-dore', name: 'Pendule Spirale Doré',
+        description: 'Pendule en métal doré en forme de spirale. Idéal pour la radiesthésie et la divination.',
+        price: 19.90, category: 'Accessoires', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['pendule-spirale-dore'], visible: false, _demo: true
+      }
+    ];
+
     try {
       var prodResult = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
-      if (!prodResult.error && prodResult.data && prodResult.data.length > 0) {
-        // Load all extra images at once
-        var allSlugs = prodResult.data.map(function(p) { return p.slug; });
+      var productsFromDB = (!prodResult.error && prodResult.data) ? prodResult.data : [];
+
+      // Si aucun produit en base et admin connecté, injecter les produits démo
+      var allProducts = productsFromDB.length > 0 ? productsFromDB : (isAdmin ? DEMO_PRODUCTS : []);
+
+      if (allProducts.length > 0) {
+        // Load all extra images at once (seulement si produits en base)
         var extraImagesMap = {};
-        try {
-          var imgResult = await supabase.from('product_images').select('*').in('product_slug', allSlugs).order('position', { ascending: true });
-          if (!imgResult.error && imgResult.data) {
-            imgResult.data.forEach(function(img) {
-              if (!extraImagesMap[img.product_slug]) extraImagesMap[img.product_slug] = [];
-              extraImagesMap[img.product_slug].push(img);
-            });
-          }
-        } catch(imgErr) { /* product_images table may not exist yet */ }
+        if (productsFromDB.length > 0) {
+          var allSlugs = productsFromDB.map(function(p) { return p.slug; });
+          try {
+            var imgResult = await supabase.from('product_images').select('*').in('product_slug', allSlugs).order('position', { ascending: true });
+            if (!imgResult.error && imgResult.data) {
+              imgResult.data.forEach(function(img) {
+                if (!extraImagesMap[img.product_slug]) extraImagesMap[img.product_slug] = [];
+                extraImagesMap[img.product_slug].push(img);
+              });
+            }
+          } catch(imgErr) { /* product_images table may not exist yet */ }
+        }
 
         // Filter: visitors only see visible products, admin sees all
-        var visibleProducts = isAdmin ? prodResult.data : prodResult.data.filter(function(p) { return p.visible !== false; });
+        var visibleProducts = isAdmin ? allProducts : allProducts.filter(function(p) { return p.visible !== false; });
         var prodGrid = document.getElementById('boutique-products-grid');
         var coming = document.querySelector('.boutique-coming');
         if (coming && visibleProducts.length > 0) coming.style.display = 'none';
