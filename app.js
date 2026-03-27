@@ -838,7 +838,7 @@
         '<div class="nouveautes-card__image" style="position:relative">' +
           '<span class="nouveautes-card__badge nouveautes-card__badge--' + item.type + '">' + icons[item.type] + ' ' + item.category + '</span>' +
           (isAdmin ? '<button class="pin-toggle-btn' + (item.pinned ? ' pin-toggle-btn--active' : '') + '" data-pin-slug="' + item.slug + '" data-pin-section="' + item.navTarget + '" title="\u00c9pingler">\ud83d\udccc</button>' : '') +
-          (item.pinned ? '<span class="pinned-badge">\ud83d\udccc \u00c9pingl\u00e9</span>' : '') +
+          (isAdmin && item.pinned ? '<span class="pinned-badge">\ud83d\udccc \u00c9pingl\u00e9</span>' : '') +
           '<img src="' + item.img + '" alt="' + item.imgAlt + '" width="640" height="400" loading="lazy">' +
         '</div>' +
         '<div class="nouveautes-card__body">' +
@@ -3387,7 +3387,7 @@
       var badge = card.querySelector('.pinned-badge');
       if (isPinned(slug)) {
         if (btn) btn.classList.add('pin-toggle-btn--active');
-        if (!badge) {
+        if (isAdmin && !badge) {
           var imgDiv = card.querySelector('.blog-card__image') || card.querySelector('.service-card__image');
           if (imgDiv) imgDiv.appendChild(createBadge());
         }
