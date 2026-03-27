@@ -98,10 +98,10 @@
     // Close blog overlay if navigating away
     closeBlogOverlay();
 
-    // Newsletter flottant : visible uniquement sur blog, boutique et services
+    // Newsletter flottant : visible sur accueil, blog, boutique et services
     var nlFloat = document.getElementById('nl-float');
     if (nlFloat) {
-      var nlPages = ['blog', 'boutique', 'services'];
+      var nlPages = ['accueil', 'blog', 'boutique', 'services'];
       nlFloat.style.display = nlPages.indexOf(pageId) !== -1 ? '' : 'none';
     }
   }
@@ -1825,10 +1825,10 @@
         chargerCoupons();
       }
     }
-    // Newsletter flottant : visible uniquement sur blog, boutique et services
+    // Newsletter flottant : visible sur accueil, blog, boutique et services
     var nlFloat = document.getElementById('nl-float');
     if (nlFloat) {
-      var nlPages = ['blog', 'boutique', 'services'];
+      var nlPages = ['accueil', 'blog', 'boutique', 'services'];
       nlFloat.style.display = nlPages.indexOf(pageId) !== -1 ? '' : 'none';
       // Fermer la card si on change de page
       var nlCard = document.getElementById('nl-float-card');
