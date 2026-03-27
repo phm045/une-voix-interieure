@@ -918,17 +918,62 @@
   var closeBtn = overlay ? overlay.querySelector('.blog-overlay__close') : null;
   var backdrop = overlay ? overlay.querySelector('.blog-overlay__backdrop') : null;
 
-  // --- Likes, Views & Comments helpers (safe storage) ---
+  // --- CountAPI base URL (used for both views and likes) ---
+  var COUNTAPI_BASE = 'https://countapi.mileshilliard.com/api/v1';
+
+  // --- Likes, Views & Comments helpers (shared via CountAPI + local liked flag) ---
+  var likesCache = {};
+  var LIKES_PREFIX = 'lumiere-likes-';
+  function hasLiked(articleId) {
+    try { return safeLocal.getItem('blog_liked_' + articleId) === '1'; }
+    catch(e) { return false; }
+  }
+  function setLiked(articleId, val) {
+    try { safeLocal.setItem('blog_liked_' + articleId, val ? '1' : '0'); } catch(e) {}
+  }
+  function fetchLikes(articleId, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', COUNTAPI_BASE + '/get/' + LIKES_PREFIX + articleId);
+    xhr.responseType = 'json';
+    xhr.timeout = 5000;
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
+        var val = parseInt(xhr.response.value, 10) || 0;
+        likesCache[articleId] = val;
+        if (callback) callback(val);
+      } else {
+        if (callback) callback(likesCache[articleId] || 0);
+      }
+    };
+    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(likesCache[articleId] || 0); };
+    try { xhr.send(); } catch(e) { if (callback) callback(0); }
+  }
+  function addLike(articleId, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', COUNTAPI_BASE + '/hit/' + LIKES_PREFIX + articleId);
+    xhr.responseType = 'json';
+    xhr.timeout = 5000;
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
+        var val = parseInt(xhr.response.value, 10) || 0;
+        likesCache[articleId] = val;
+        if (callback) callback(val);
+      } else {
+        if (callback) callback(likesCache[articleId] || 0);
+      }
+    };
+    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(likesCache[articleId] || 0); };
+    try { xhr.send(); } catch(e) { if (callback) callback(0); }
+  }
   function getLikes(articleId) {
-    try { return JSON.parse(safeLocal.getItem('blog_likes_' + articleId)) || { count: 0, liked: false }; }
-    catch(e) { return { count: 0, liked: false }; }
+    return { count: likesCache[articleId] || 0, liked: hasLiked(articleId) };
   }
   function saveLikes(articleId, data) {
-    try { safeLocal.setItem('blog_likes_' + articleId, JSON.stringify(data)); } catch(e) {}
+    // kept for compatibility — actual count is managed by CountAPI
+    setLiked(articleId, data.liked);
   }
   // --- Views: shared counter via countapi (visible by everyone) ---
   var viewsCache = {};
-  var COUNTAPI_BASE = 'https://countapi.mileshilliard.com/api/v1';
   var COUNTAPI_PREFIX = 'lumiere-interieure-';
   function fetchViews(articleId, callback) {
     var xhr = new XMLHttpRequest();
@@ -1055,24 +1100,30 @@
     // Like button handler
     var likeBtn = articleBody.querySelector('[data-like-article="' + articleId + '"]');
     if (likeBtn) {
+      // Set initial state based on whether user already liked
+      if (hasLiked(articleId)) {
+        likeBtn.classList.add('liked');
+        var initSvg = likeBtn.querySelector('svg');
+        if (initSvg) initSvg.setAttribute('fill', 'var(--color-terracotta)');
+      }
       likeBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var data = getLikes(articleId);
-        if (data.liked) {
-          data.count = Math.max(0, data.count - 1);
-          data.liked = false;
-        } else {
-          data.count += 1;
-          data.liked = true;
-        }
-        saveLikes(articleId, data);
-        this.classList.toggle('liked');
+        if (hasLiked(articleId)) return; // already liked, do nothing
+        setLiked(articleId, true);
+        var self = this;
+        addLike(articleId, function(newCount) {
+          self.querySelector('.like-count').textContent = newCount;
+          updateCardStats(articleId);
+        });
+        // Optimistic UI update
+        likesCache[articleId] = (likesCache[articleId] || 0) + 1;
+        this.classList.add('liked');
         var svg = this.querySelector('svg');
-        svg.setAttribute('fill', data.liked ? 'var(--color-terracotta)' : 'none');
+        svg.setAttribute('fill', 'var(--color-terracotta)');
         svg.classList.remove('like-anim');
         void svg.offsetWidth;
         svg.classList.add('like-anim');
-        this.querySelector('.like-count').textContent = data.count;
+        this.querySelector('.like-count').textContent = likesCache[articleId];
         updateCardStats(articleId);
       });
     }
@@ -1124,20 +1175,22 @@
     fetchViews(articleId, function() {
       updateCardStats(articleId);
     });
-    // Init likes display (local)
+    // Fetch shared like count from API, then update display
+    fetchLikes(articleId, function() {
+      updateCardStats(articleId);
+    });
+    // Init likes display (local liked state)
     updateCardStats(articleId);
     // Heart click on card
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      var data = getLikes(articleId);
-      if (data.liked) {
-        data.count = Math.max(0, data.count - 1);
-        data.liked = false;
-      } else {
-        data.count += 1;
-        data.liked = true;
-      }
-      saveLikes(articleId, data);
+      if (hasLiked(articleId)) return; // already liked, do nothing
+      setLiked(articleId, true);
+      addLike(articleId, function() {
+        updateCardStats(articleId);
+      });
+      // Optimistic UI update
+      likesCache[articleId] = (likesCache[articleId] || 0) + 1;
       updateCardStats(articleId);
     });
   });
