@@ -3107,6 +3107,11 @@ Cal("init", "consultations", { origin: "https://app.cal.eu" });
         <input type="number" class="admin-modal__input" name="price" placeholder="19.90" step="0.01" min="0" required>
       </div>
       <div class="admin-modal__group">
+        <label class="admin-modal__label">Lien Stripe (Payment Link)</label>
+        <input type="url" class="admin-modal__input" name="stripe_link" placeholder="https://buy.stripe.com/...">
+        <p style="font-size:0.78rem;color:#999;margin-top:0.3rem">Créez le produit dans votre <a href="https://dashboard.stripe.com/payment-links" target="_blank" rel="noopener" style="color:var(--color-accent)">Dashboard Stripe</a>, puis collez le lien ici. Sans lien, le produit ne sera pas achetable.</p>
+      </div>
+      <div class="admin-modal__group">
         <label class="admin-modal__label">Catégorie</label>
         <input type="text" class="admin-modal__input" name="category" placeholder="Ex : Cristaux, Encens, Méditation" required>
       </div>
