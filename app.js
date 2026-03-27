@@ -4237,6 +4237,7 @@ function getComments(articleId) {
     overlay.setAttribute('data-product-name', productData.name);
     overlay.setAttribute('data-product-price', productData.price);
     overlay.setAttribute('data-product-image', productData.image_url || 'crystals-nature.png');
+    overlay.setAttribute('data-product-stripe-link', productData.stripe_link || '');
 
     // Show overlay
     overlay.hidden = false;
@@ -4292,6 +4293,7 @@ function getComments(articleId) {
         price: parseFloat(product.price),
         image_url: product.image_url || 'crystals-nature.png',
         category: product.category || '',
+        stripe_link: product.stripe_link || '',
         qty: 1
       });
     }
@@ -4447,73 +4449,102 @@ function getComments(articleId) {
       var name = overlay.getAttribute('data-product-name');
       var price = overlay.getAttribute('data-product-price');
       var image = overlay.getAttribute('data-product-image');
+      var stripeLink = overlay.getAttribute('data-product-stripe-link') || '';
       if (!slug || !name || !price) return;
       addToCart({
         slug: slug,
         name: name,
         price: parseFloat(price),
         image_url: image || 'crystals-nature.png',
-        category: ''
+        category: '',
+        stripe_link: stripeLink
       });
       closeProductDetail();
     });
   }
 
-  // Checkout: create Stripe Checkout Session with all cart items
+  // Checkout: redirect to Stripe Payment Links
   var checkoutBtn = document.getElementById('cart-checkout');
   if (checkoutBtn) {
     checkoutBtn.addEventListener('click', async function() {
       var cart = getCart();
       if (cart.length === 0) return;
 
+      // Check all items have a Stripe link
+      var missingLinks = cart.filter(function(item) { return !item.stripe_link; });
+      if (missingLinks.length > 0) {
+        alert('Certains produits ne sont pas encore disponibles \u00e0 l\u2019achat : ' + missingLinks.map(function(i) { return i.name; }).join(', ') + '.');
+        return;
+      }
+
       checkoutBtn.disabled = true;
       checkoutBtn.textContent = 'Redirection en cours...';
 
       try {
-        var siteUrl = 'https://phm045.github.io/Lumiere-interieur';
-        var slugs = cart.map(function(item) { return item.slug; }).join(',');
-        var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(slugs);
-        var cancelUrl = siteUrl + '/#boutique';
+        if (cart.length === 1) {
+          // Single product: use Payment Link directly
+          var item = cart[0];
+          var paymentUrl = item.stripe_link;
 
-        var params = {
-          'mode': 'payment',
-          'success_url': successUrl,
-          'cancel_url': cancelUrl
-        };
-
-        // Add each cart item as a line item
-        for (var i = 0; i < cart.length; i++) {
-          var item = cart[i];
-          params['line_items[' + i + '][price_data][currency]'] = 'eur';
-          params['line_items[' + i + '][price_data][product_data][name]'] = item.name;
-          params['line_items[' + i + '][price_data][unit_amount]'] = Math.round(item.price * 100);
-          params['line_items[' + i + '][quantity]'] = String(item.qty);
-          if (item.image_url && item.image_url.indexOf('http') === 0) {
-            params['line_items[' + i + '][price_data][product_data][images][0]'] = item.image_url;
-          }
-        }
-
-        // Check for active coupon
-        try {
-          var coupon = await getActiveCouponForServices();
-          if (coupon && coupon.applicable_a !== 'services') {
-            var promoMap = getStripePromoMap ? getStripePromoMap() : {};
-            var stripePromoId = promoMap[coupon.code];
-            if (stripePromoId) {
-              params['discounts[0][promotion_code]'] = stripePromoId;
+          // Add coupon if available
+          try {
+            var coupon = await getActiveCouponForServices();
+            if (coupon && coupon.applicable_a !== 'services') {
+              paymentUrl = buildStripeUrlWithPromo(paymentUrl, coupon.code);
             }
+          } catch(ce) {}
+
+          // Add quantity parameter if > 1
+          if (item.qty > 1) {
+            paymentUrl += (paymentUrl.indexOf('?') === -1 ? '?' : '&') + 'quantity=' + item.qty;
           }
-        } catch(ce) {}
 
-        var session = await stripeApiCall('/checkout/sessions', 'POST', params);
-
-        if (session && session.url) {
-          // Clear cart on successful redirect
           localStorage.removeItem(CART_KEY);
           updateCartUI();
-          window.location.href = session.url;
+          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+          closeCartDrawer();
         } else {
-          throw new Error('URL de paiement non re\u00e7ue');
+          // Multiple products: open each Payment Link in sequence
+          // (Stripe Payment Links don't support multi-product in one link)
+          // Use Edge Function to create a combined Checkout Session
+          var siteUrl = 'https://phm045.github.io/Lumiere-interieur';
+          var slugs = cart.map(function(item) { return item.slug; }).join(',');
+          var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(slugs);
+          var cancelUrl = siteUrl + '/#boutique';
+
+          var params = {
+            'mode': 'payment',
+            'success_url': successUrl,
+            'cancel_url': cancelUrl
+          };
+          for (var i = 0; i < cart.length; i++) {
+            var ci = cart[i];
+            params['line_items[' + i + '][price_data][currency]'] = 'eur';
+            params['line_items[' + i + '][price_data][product_data][name]'] = ci.name;
+            params['line_items[' + i + '][price_data][unit_amount]'] = Math.round(ci.price * 100);
+            params['line_items[' + i + '][quantity]'] = String(ci.qty);
+            if (ci.image_url && ci.image_url.indexOf('http') === 0) {
+              params['line_items[' + i + '][price_data][product_data][images][0]'] = ci.image_url;
+            }
+          }
+
+          try {
+            var coupon = await getActiveCouponForServices();
+            if (coupon && coupon.applicable_a !== 'services') {
+              var promoMap = getStripePromoMap ? getStripePromoMap() : {};
+              var stripePromoId = promoMap[coupon.code];
+              if (stripePromoId) params['discounts[0][promotion_code]'] = stripePromoId;
+            }
+          } catch(ce) {}
+
+          var session = await stripeApiCall('/checkout/sessions', 'POST', params);
+          if (session && session.url) {
+            localStorage.removeItem(CART_KEY);
+            updateCartUI();
+            window.location.href = session.url;
+          } else {
+            throw new Error('URL de paiement non re\u00e7ue');
+          }
         }
       } catch(err) {
         console.error('[Stripe Panier] Erreur:', err);
@@ -4553,6 +4584,7 @@ function getComments(articleId) {
       }
 
       var isVisible = fd.get('visible') === 'true';
+      var stripeLink = (fd.get('stripe_link') || '').trim();
       var data = {
         slug: slug,
         name: name,
@@ -4560,7 +4592,8 @@ function getComments(articleId) {
         price: parseFloat(fd.get('price')),
         category: fd.get('category').trim(),
         image_url: imageUrl,
-        visible: isVisible
+        visible: isVisible,
+        stripe_link: stripeLink
       };
 
       var result = await supabase.from('boutique_products').insert([data]);
@@ -5436,7 +5469,7 @@ function getComments(articleId) {
       var submitBtn = form.querySelector('.admin-modal__submit');
       if (submitBtn) submitBtn.textContent = 'Mettre \u00e0 jour';
       // Fill form fields
-      var fields = { name: p.name, description: p.description, price: p.price, category: p.category };
+      var fields = { name: p.name, description: p.description, price: p.price, category: p.category, stripe_link: p.stripe_link || '' };
       for (var key in fields) {
         var input = form.querySelector('[name="' + key + '"]');
         if (input) input.value = fields[key] || '';
@@ -6231,7 +6264,8 @@ function getComments(articleId) {
             price: parseFloat(fd.get('price')),
             category: fd.get('category').trim(),
             image_url: imageUrl || 'crystals-nature.png',
-            visible: fd.get('visible') === 'true'
+            visible: fd.get('visible') === 'true',
+            stripe_link: (fd.get('stripe_link') || '').trim()
           };
 
           var res = await supabase.from('boutique_products').update(updateData).eq('slug', editSlug);
