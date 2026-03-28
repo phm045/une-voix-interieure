@@ -4138,7 +4138,12 @@ function getComments(articleId) {
   }
 
   // --- Load dynamic content from Supabase on page load ---
+  var _initDynamicRunning = false;
   async function initDynamicContent(isAdmin) {
+    // Prevent concurrent calls — if already running, skip
+    if (_initDynamicRunning) { console.log('[initDynamic] Skipped (already running)'); return; }
+    _initDynamicRunning = true;
+    try {
     // Clean up previous dynamic content to prevent duplicates on re-call
     var blogGrid = document.querySelector('.blog-grid');
     if (blogGrid) {
@@ -4351,6 +4356,7 @@ function getComments(articleId) {
     var feedGrid = document.getElementById('nouveautes-grid');
     if (feedGrid) { feedGrid.innerHTML = ''; }
     if (typeof window.__populateNouveautes === 'function') window.__populateNouveautes();
+    } finally { _initDynamicRunning = false; }
   }
 
   // --- Upload image to Supabase Storage ---
