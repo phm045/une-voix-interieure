@@ -3146,6 +3146,8 @@ function getComments(articleId) {
       var serviceEl = document.getElementById('modal-reservation-service');
       if (serviceEl) serviceEl.textContent = serviceName;
 
+      openModal('modal-reservation');
+
       // Stocker la référence au bouton Cal.com pour le déclencher après confirmation
       var confirmBtn = document.getElementById('modal-reservation-confirm');
       if (confirmBtn) {
