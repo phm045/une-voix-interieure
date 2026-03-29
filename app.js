@@ -4019,6 +4019,10 @@ function getComments(articleId) {
     card.setAttribute('data-product-slug', data.slug);
     card.setAttribute('data-dynamic', 'true');
     var hiddenBadge = (isAdmin && data.visible === false) ? '<span class="boutique-product-card__badge-hidden">Masqu\u00e9</span>' : '';
+    var isInStock = data.in_stock !== false;
+    var stockBadge = isInStock
+      ? '<span class="boutique-product-card__stock-badge boutique-product-card__stock-badge--in">En stock</span>'
+      : '<span class="boutique-product-card__stock-badge boutique-product-card__stock-badge--out">&Eacute;puis&eacute;</span>';
 
     // Build images array: main image + extra images
     var allImages = [data.image_url || 'crystals-nature.png'];
@@ -4058,10 +4062,20 @@ function getComments(articleId) {
     var isTruncated = descText.length > descMax;
     var descShort = isTruncated ? descText.substring(0, descMax).replace(/\s+\S*$/, '') + '\u2026' : descText;
 
+    var addCartBtnHTML = isInStock
+      ? '<button class="boutique-product-card__add-cart" type="button" data-add-cart>' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' +
+          ' Ajouter au panier' +
+        '</button>'
+      : '<button class="boutique-product-card__add-cart boutique-product-card__add-cart--disabled" type="button" disabled>' +
+          '\u00c9puis\u00e9' +
+        '</button>';
+
     card.innerHTML =
       '<div class="boutique-product-card__image">' +
         (isAdmin ? '<button class="admin-delete-btn" data-delete-type="boutique" data-delete-slug="' + data.slug + '" title="Supprimer">\ud83d\uddd1\ufe0f</button>' : '') +
         hiddenBadge +
+        stockBadge +
         imageHTML +
       '</div>' +
       '<div class="boutique-product-card__content">' +
@@ -4074,10 +4088,7 @@ function getComments(articleId) {
         '</div>' +
         '<div class="boutique-product-card__footer">' +
           '<p class="boutique-product-card__price">' + parseFloat(data.price).toFixed(2) + ' \u20ac</p>' +
-          '<button class="boutique-product-card__add-cart" type="button" data-add-cart>' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' +
-            ' Ajouter au panier' +
-          '</button>' +
+          addCartBtnHTML +
         '</div>' +
       '</div>';
 
@@ -4256,43 +4267,43 @@ function getComments(articleId) {
         slug: 'amethyste-pierre-roulee', name: 'Améthyste - Pierre roulée',
         description: 'Pierre roulée d\'améthyste naturelle. Favorise l\'intuition, la sérénité et la méditation. Taille : 2-3 cm environ.',
         price: 8.90, category: 'Cristaux', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['amethyste-pierre-roulee'], visible: false, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['amethyste-pierre-roulee'], visible: false, in_stock: true, _demo: true
       },
       {
         slug: 'quartz-rose-pierre-brute', name: 'Quartz Rose - Pierre brute',
         description: 'Pierre brute de quartz rose naturel. Pierre de l\'amour inconditionnel et de la paix intérieure. Taille : 3-5 cm environ.',
         price: 12.90, category: 'Cristaux', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['quartz-rose-pierre-brute'], visible: false, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['quartz-rose-pierre-brute'], visible: false, in_stock: true, _demo: true
       },
       {
         slug: 'tourmaline-noire-pierre-de-protection', name: 'Tourmaline Noire - Pierre de protection',
         description: 'Tourmaline noire naturelle, pierre de protection par excellence. Absorbe les énergies négatives et ancrage. Taille : 2-4 cm environ.',
         price: 14.90, category: 'Cristaux', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['tourmaline-noire-pierre-de-protection'], visible: false, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['tourmaline-noire-pierre-de-protection'], visible: false, in_stock: true, _demo: true
       },
       {
         slug: 'sauge-blanche-baton-de-purification', name: 'Sauge Blanche - Bâton de purification',
         description: 'Bâton de sauge blanche de Californie pour la purification énergétique des espaces et des personnes. Environ 10 cm.',
         price: 7.50, category: 'Encens & Purification', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['sauge-blanche-baton-de-purification'], visible: false, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['sauge-blanche-baton-de-purification'], visible: false, in_stock: true, _demo: true
       },
       {
         slug: 'pendule-spirale-dore', name: 'Pendule Spirale Doré',
         description: 'Pendule en métal doré en forme de spirale. Idéal pour la radiesthésie et la divination.',
         price: 19.90, category: 'Accessoires', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['pendule-spirale-dore'], visible: false, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['pendule-spirale-dore'], visible: false, in_stock: true, _demo: true
       },
       {
         slug: 'bracelet-elastique-6mm', name: 'Bracelet Élastique en Pierres Naturelles — 6mm',
         description: 'Bracelet en perles de pierres naturelles de 6\u00a0mm monté sur élastique résistant. Léger et confortable, il s\u2019adapte à tous les poignets. Idéal pour bénéficier des bienfaits de la lithothérapie au quotidien. Pierre au choix selon disponibilité (améthyste, quartz rose, œil de tigre…).',
         price: 12.90, category: 'Bijoux & Lithothérapie', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['bracelet-elastique-6mm'], visible: true, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['bracelet-elastique-6mm'], visible: true, in_stock: true, _demo: true
       },
       {
         slug: 'bracelet-pierre-de-lave-6mm', name: 'Bracelet Élastique Pierre de Lave — 6mm',
         description: 'Bracelet en perles de pierre de lave naturelle de 6\u00a0mm sur élastique résistant. Pierre volcanique d\u2019ancrage et de protection, la lave apporte force intérieure et stabilité émotionnelle. Poreuse, elle peut servir de diffuseur d\u2019huiles essentielles. Léger et discret, il se porte au quotidien.',
         price: 10.90, category: 'Bijoux & Lithothérapie', image_url: 'crystals-nature.png',
-        stripe_link: BOUTIQUE_STRIPE_LINKS['bracelet-pierre-de-lave-6mm'], visible: true, _demo: true
+        stripe_link: BOUTIQUE_STRIPE_LINKS['bracelet-pierre-de-lave-6mm'], visible: true, in_stock: true, _demo: true
       }
     ];
 
@@ -4313,7 +4324,7 @@ function getComments(articleId) {
       if (toSeed.length > 0) {
         console.log('[Boutique] Auto-seed: insertion de', toSeed.length, 'produits démo en base...');
         var seedData = toSeed.map(function(p) {
-          return { slug: p.slug, name: p.name, description: p.description, price: p.price, category: p.category, image_url: p.image_url, stripe_link: p.stripe_link, visible: p.visible };
+          return { slug: p.slug, name: p.name, description: p.description, price: p.price, category: p.category, image_url: p.image_url, stripe_link: p.stripe_link, visible: p.visible, in_stock: p.in_stock !== false };
         });
         try {
           var seedResult = await supabase.from('boutique_products').insert(seedData);
@@ -5116,6 +5127,32 @@ function getComments(articleId) {
     if (nameEl) nameEl.textContent = productData.name;
     if (catEl) catEl.textContent = productData.category;
 
+    // Stock status
+    var isInStock = productData.in_stock !== false;
+    var stockEl = document.getElementById('product-detail-stock');
+    if (stockEl) {
+      if (isInStock) {
+        stockEl.className = 'product-overlay__stock-badge product-overlay__stock-badge--in';
+        stockEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.3rem"><polyline points="20 6 9 17 4 12"/></svg>En stock';
+      } else {
+        stockEl.className = 'product-overlay__stock-badge product-overlay__stock-badge--out';
+        stockEl.textContent = '\u00c9puis\u00e9';
+      }
+    }
+    // Disable/enable add-to-cart button
+    var addCartBtn = document.getElementById('product-detail-add-cart');
+    if (addCartBtn) {
+      if (isInStock) {
+        addCartBtn.disabled = false;
+        addCartBtn.classList.remove('product-overlay__add-cart--disabled');
+        addCartBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:0.4rem"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ajouter au panier';
+      } else {
+        addCartBtn.disabled = true;
+        addCartBtn.classList.add('product-overlay__add-cart--disabled');
+        addCartBtn.innerHTML = '\u00c9puis\u00e9';
+      }
+    }
+
     // Parse and structure the description
     var parsed = parseProductDescription(productData.description || '');
     if (shortDescEl) shortDescEl.textContent = parsed.intro;
@@ -5608,6 +5645,7 @@ function getComments(articleId) {
       }
 
       var isVisible = fd.get('visible') === 'true';
+      var isInStock = fd.get('in_stock') !== 'false';
       var stripeLink = (fd.get('stripe_link') || '').trim();
       var data = {
         slug: slug,
@@ -5617,6 +5655,7 @@ function getComments(articleId) {
         category: fd.get('category').trim(),
         image_url: imageUrl,
         visible: isVisible,
+        in_stock: isInStock,
         stripe_link: stripeLink
       };
 
@@ -6504,6 +6543,9 @@ function getComments(articleId) {
         var input = form.querySelector('[name="' + key + '"]');
         if (input) input.value = fields[key] || '';
       }
+      // Set in_stock toggle
+      var stockSelect = form.querySelector('[name="in_stock"]');
+      if (stockSelect) stockSelect.value = (p.in_stock !== false) ? 'true' : 'false';
       // Set visible toggle
       var visibleSelect = form.querySelector('[name="visible"]');
       if (visibleSelect) visibleSelect.value = (p.visible !== false) ? 'true' : 'false';
@@ -7318,6 +7360,7 @@ function getComments(articleId) {
             category: fd.get('category').trim(),
             image_url: imageUrl || 'crystals-nature.png',
             visible: fd.get('visible') === 'true',
+            in_stock: fd.get('in_stock') !== 'false',
             stripe_link: (fd.get('stripe_link') || '').trim()
           };
 
