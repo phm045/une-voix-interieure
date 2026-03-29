@@ -3100,6 +3100,7 @@ Cal("init", "consultations", { origin: "https://app.cal.eu" });
         <p class="product-overlay__category" id="product-detail-category"></p>
         <h2 class="product-overlay__name" id="product-detail-name"></h2>
         <p class="product-overlay__short-desc" id="product-detail-short-desc"></p>
+        <div class="product-overlay__stock-badge" id="product-detail-stock"></div>
         <div class="product-overlay__purchase-block">
           <p class="product-overlay__price" id="product-detail-price"></p>
           <div class="product-overlay__actions">
@@ -3170,6 +3171,13 @@ Cal("init", "consultations", { origin: "https://app.cal.eu" });
         <input type="file" id="admin-boutique-extra-images" accept="image/*" multiple class="admin-modal__input">
         <p style="font-size:0.8rem;color:#999;margin-top:0.3rem">Sélectionnez plusieurs photos pour créer une galerie. L'image principale sera toujours affichée en premier.</p>
         <div id="admin-boutique-extra-preview" class="admin-extra-preview" style="margin-top:0.5rem;display:none"></div>
+      </div>
+      <div class="admin-modal__group">
+        <label class="admin-modal__label">Disponibilité</label>
+        <select class="admin-modal__select" name="in_stock">
+          <option value="true">✅ En stock</option>
+          <option value="false">❌ Épuisé</option>
+        </select>
       </div>
       <div class="admin-modal__group">
         <label class="admin-modal__label">Visibilité</label>
