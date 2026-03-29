@@ -4268,9 +4268,20 @@ function getComments(articleId) {
       }
     }
 
-    // Utiliser les produits de la base, ou les démo en mémoire comme fallback
-    // Les produits démo visibles sont aussi montrés aux visiteurs quand la base est vide
-    var allProducts = productsFromDB.length > 0 ? productsFromDB : DEMO_PRODUCTS;
+    // Utiliser les produits de la base, complétés par les démo visibles absents de la base
+    var allProducts;
+    if (productsFromDB.length > 0) {
+      allProducts = productsFromDB.slice();
+      // Ajouter les produits démo visibles qui ne sont pas encore en base
+      var dbSlugs = productsFromDB.map(function(p) { return p.slug; });
+      DEMO_PRODUCTS.forEach(function(dp) {
+        if (dp.visible && dbSlugs.indexOf(dp.slug) === -1) {
+          allProducts.push(dp);
+        }
+      });
+    } else {
+      allProducts = DEMO_PRODUCTS;
+    }
     console.log('[Boutique] Produits chargés:', allProducts.length, '(DB:', productsFromDB.length, ', isAdmin:', isAdmin, ')');
 
     if (allProducts.length > 0) {
