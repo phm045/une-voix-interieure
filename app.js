@@ -2097,7 +2097,8 @@ function getComments(articleId) {
     'amethyste-pierre-roulee': 'https://buy.stripe.com/4gM14gcZ9bLzgoSbi1eAg0f',
     'sauge-blanche-baton-de-purification': 'https://buy.stripe.com/7sY3co7EP4j7goS99TeAg0d',
     'quartz-rose-pierre-brute': 'https://buy.stripe.com/4gMdR21grbLzfkO2LveAg0e',
-    'tourmaline-noire-pierre-de-protection': 'https://buy.stripe.com/6oUcMY6AL3f3c8CeudeAg0c'
+    'tourmaline-noire-pierre-de-protection': 'https://buy.stripe.com/6oUcMY6AL3f3c8CeudeAg0c',
+    'bracelet-elastique-6mm': ''
   };
 
   // Map des liens Stripe vers les noms de services
@@ -4221,6 +4222,12 @@ function getComments(articleId) {
         description: 'Pendule en métal doré en forme de spirale. Idéal pour la radiesthésie et la divination.',
         price: 19.90, category: 'Accessoires', image_url: 'crystals-nature.png',
         stripe_link: BOUTIQUE_STRIPE_LINKS['pendule-spirale-dore'], visible: false, _demo: true
+      },
+      {
+        slug: 'bracelet-elastique-6mm', name: 'Bracelet Élastique en Pierres Naturelles — 6mm',
+        description: 'Bracelet en perles de pierres naturelles de 6\u00a0mm monté sur élastique résistant. Léger et confortable, il s\u2019adapte à tous les poignets. Idéal pour bénéficier des bienfaits de la lithothérapie au quotidien. Pierre au choix selon disponibilité (améthyste, quartz rose, œil de tigre…).',
+        price: 12.90, category: 'Bijoux & Lithothérapie', image_url: 'crystals-nature.png',
+        stripe_link: BOUTIQUE_STRIPE_LINKS['bracelet-elastique-6mm'], visible: true, _demo: true
       }
     ];
 
@@ -4262,7 +4269,8 @@ function getComments(articleId) {
     }
 
     // Utiliser les produits de la base, ou les démo en mémoire comme fallback
-    var allProducts = productsFromDB.length > 0 ? productsFromDB : (isAdmin ? DEMO_PRODUCTS : []);
+    // Les produits démo visibles sont aussi montrés aux visiteurs quand la base est vide
+    var allProducts = productsFromDB.length > 0 ? productsFromDB : DEMO_PRODUCTS;
     console.log('[Boutique] Produits chargés:', allProducts.length, '(DB:', productsFromDB.length, ', isAdmin:', isAdmin, ')');
 
     if (allProducts.length > 0) {
