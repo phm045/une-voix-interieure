@@ -7748,6 +7748,8 @@ function getComments(articleId) {
         caNet: caNet,
         caConsult: caConsult,
         caBoutique: caBoutique,
+        urssafConsult: urssafConsult,
+        urssafBoutique: urssafBoutique,
         netConsult: netConsult,
         netBoutique: netBoutique,
         nbConsult: nbConsult,
@@ -7817,12 +7819,35 @@ function getComments(articleId) {
     doc.text('Chiffre d\'affaires brut :', 25, y);
     doc.setFont('helvetica', 'bold');
     doc.text(data.caBrut.toFixed(2) + ' \u20ac', pageWidth - 25, y, { align: 'right' });
-    y += 8;
+    y += 10;
 
-    // URSSAF
+    // Ventilation consultations
+    if (data.caConsult > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('  Consultations : ' + data.caConsult.toFixed(2) + ' \u20ac', 30, y);
+      doc.setTextColor(200, 50, 50);
+      doc.text('URSSAF 26,10% : -' + (data.urssafConsult || 0).toFixed(2) + ' \u20ac', pageWidth - 25, y, { align: 'right' });
+      doc.setTextColor(0);
+      y += 6;
+    }
+
+    // Ventilation boutique
+    if (data.caBoutique > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('  Boutique : ' + data.caBoutique.toFixed(2) + ' \u20ac', 30, y);
+      doc.setTextColor(200, 50, 50);
+      doc.text('URSSAF 12,30% : -' + (data.urssafBoutique || 0).toFixed(2) + ' \u20ac', pageWidth - 25, y, { align: 'right' });
+      doc.setTextColor(0);
+      y += 6;
+    }
+
+    // Total URSSAF
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 50, 50);
-    doc.text('Cotisations URSSAF (25,60%) :', 25, y);
+    doc.text('Total cotisations URSSAF :', 25, y);
     doc.setFont('helvetica', 'bold');
     doc.text('-' + data.urssaf.toFixed(2) + ' \u20ac', pageWidth - 25, y, { align: 'right' });
     y += 2;
@@ -7907,6 +7932,10 @@ function getComments(articleId) {
         ca_brut: data.caBrut,
         urssaf: data.urssaf,
         ca_net: data.caNet,
+        ca_consult: data.caConsult || 0,
+        ca_boutique: data.caBoutique || 0,
+        urssaf_consult: data.urssafConsult || 0,
+        urssaf_boutique: data.urssafBoutique || 0,
         nb_commandes: data.commandes.length,
         archived_at: new Date().toISOString()
       }, { onConflict: 'mois,annee' });
@@ -7977,7 +8006,11 @@ function getComments(articleId) {
         commandes: commandes,
         caBrut: parseFloat(arch.ca_brut) || 0,
         urssaf: parseFloat(arch.urssaf) || 0,
-        caNet: parseFloat(arch.ca_net) || 0
+        caNet: parseFloat(arch.ca_net) || 0,
+        caConsult: parseFloat(arch.ca_consult) || 0,
+        caBoutique: parseFloat(arch.ca_boutique) || 0,
+        urssafConsult: parseFloat(arch.urssaf_consult) || 0,
+        urssafBoutique: parseFloat(arch.urssaf_boutique) || 0
       });
     } catch(e) {
       alert('Erreur lors du t\u00e9l\u00e9chargement de l\'archive.');
