@@ -4322,7 +4322,7 @@ function getComments(articleId) {
     }
 
     // Admin auto-seed : insérer les produits démo en base s'ils n'y sont pas encore
-    if (isAdmin && productsFromDB.length < DEMO_PRODUCTS.length) {
+    if (isAdmin) {
       var existingSlugs = productsFromDB.map(function(p) { return p.slug; });
       var toSeed = DEMO_PRODUCTS.filter(function(p) { return existingSlugs.indexOf(p.slug) === -1; });
       if (toSeed.length > 0) {
@@ -4336,14 +4336,36 @@ function getComments(articleId) {
             console.warn('[Boutique] Auto-seed erreur:', seedResult.error.message);
           } else {
             console.log('[Boutique] Auto-seed réussi :', toSeed.length, 'produits insérés');
-            // Recharger depuis la base
-            var reloadResult = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
-            if (!reloadResult.error && reloadResult.data) {
-              productsFromDB = reloadResult.data;
-            }
           }
         } catch(seedErr) {
           console.warn('[Boutique] Auto-seed exception:', seedErr.message);
+        }
+      }
+      // Admin auto-update : mettre à jour les descriptions courtes avec les versions enrichies
+      var demoBySlug = {};
+      DEMO_PRODUCTS.forEach(function(p) { demoBySlug[p.slug] = p; });
+      var toUpdate = productsFromDB.filter(function(dbp) {
+        var demo = demoBySlug[dbp.slug];
+        return demo && demo.description.length > dbp.description.length + 50;
+      });
+      if (toUpdate.length > 0) {
+        console.log('[Boutique] Auto-update: mise à jour de', toUpdate.length, 'descriptions enrichies...');
+        for (var ui = 0; ui < toUpdate.length; ui++) {
+          var dbp = toUpdate[ui];
+          var demo = demoBySlug[dbp.slug];
+          try {
+            await supabase.from('boutique_products').update({ name: demo.name, description: demo.description }).eq('slug', dbp.slug);
+            console.log('[Boutique] Mis à jour:', dbp.slug);
+          } catch(updErr) {
+            console.warn('[Boutique] Update erreur pour', dbp.slug, ':', updErr.message);
+          }
+        }
+      }
+      // Recharger depuis la base après seed/update
+      if (toSeed.length > 0 || toUpdate.length > 0) {
+        var reloadResult = await supabase.from('boutique_products').select('*').order('created_at', { ascending: false });
+        if (!reloadResult.error && reloadResult.data) {
+          productsFromDB = reloadResult.data;
         }
       }
     }
