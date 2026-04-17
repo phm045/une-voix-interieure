@@ -963,6 +963,10 @@ section {
   gap: var(--space-8);
 }
 
+.service-card[hidden] {
+  display: none !important;
+}
+
 .service-card {
   position: relative;
   display: grid;
