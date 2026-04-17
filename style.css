@@ -212,20 +212,20 @@
 .header__logo::before {
   content: '';
   position: absolute;
-  top: 28%;
-  left: 50%;
-  width: 50px;
-  height: 50px;
+  top: 50%;
+  left: 36px;
+  width: 56px;
+  height: 56px;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle,
-    rgba(212, 175, 55, 0.6) 0%,
-    rgba(184, 149, 46, 0.35) 30%,
-    rgba(212, 175, 55, 0.15) 55%,
+    rgba(212, 175, 55, 0.55) 0%,
+    rgba(184, 149, 46, 0.3) 35%,
+    rgba(212, 175, 55, 0.12) 60%,
     transparent 100%
   );
   border-radius: 50%;
-  filter: blur(10px);
+  filter: blur(12px);
   animation: logo-glow 4s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
@@ -260,10 +260,10 @@
 
 .footer__brand .header__logo::before {
   left: 90px;
-  top: 30%;
-  width: 100px;
-  height: 100px;
-  filter: blur(16px);
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  filter: blur(18px);
   transform: translate(-50%, -50%);
 }
 
@@ -379,10 +379,10 @@
   }
   .header__logo::before {
     left: 50%;
-    top: 28%;
-    width: 40px;
-    height: 40px;
-    filter: blur(8px);
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    filter: blur(10px);
   }
 }
 
