@@ -6373,6 +6373,26 @@ textarea.blog-comments__input {
 
 .admin-tab-content--active {
   display: block;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* Scrollbar verticale des onglets admin */
+.admin-tab-content--active::-webkit-scrollbar {
+  width: 6px;
+}
+.admin-tab-content--active::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+.admin-tab-content--active::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+.admin-tab-content--active::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
 }
 
 /* Stats Grid */
@@ -6459,6 +6479,24 @@ textarea.blog-comments__input {
 /* Table styles */
 .admin-dash-table {
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar horizontale des tableaux admin */
+.admin-dash-table::-webkit-scrollbar {
+  height: 5px;
+}
+.admin-dash-table::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+.admin-dash-table::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+.admin-dash-table::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .admin-dash-loading {
