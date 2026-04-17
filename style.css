@@ -2916,6 +2916,23 @@ textarea.blog-comments__input {
   display: none;
 }
 
+/* Bouton Admin dans le header (quand connecté en tant qu'admin) */
+.nav-auth--admin {
+  width: auto !important;
+  padding: 0 var(--space-3) !important;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(107, 127, 78, 0.12) !important;
+  border: 1px solid rgba(107, 127, 78, 0.3) !important;
+  color: var(--color-primary) !important;
+  border-radius: var(--radius-full);
+}
+
+.nav-auth--admin:hover {
+  background: rgba(107, 127, 78, 0.2) !important;
+}
+
 /* --- Page Mon Compte : Guest state --- */
 .compte-guest {
   max-width: 520px;
