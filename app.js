@@ -950,12 +950,10 @@
   var closeBtn = overlay ? overlay.querySelector('.blog-overlay__close') : null;
   var backdrop = overlay ? overlay.querySelector('.blog-overlay__backdrop') : null;
 
-  // --- CountAPI base URL (used for both views and likes) ---
-  var COUNTAPI_BASE = 'https://countapi.mileshilliard.com/api/v1';
+  // CountAPI supprimé — Supabase est le seul système de comptage (blog_views / blog_likes)
 
   // --- Likes: Supabase-backed with CountAPI fallback ---
   var likesCache = {};
-  var LIKES_PREFIX = 'lumiere-likes-';
   function hasLiked(articleId) {
     try { return safeLocal.getItem('blog_liked_' + articleId) === '1'; }
     catch(e) { return false; }
@@ -979,32 +977,9 @@
       fetchLikesFromCountAPI(articleId, callback);
     }
   }
+  // CountAPI hors-service — fallback silencieux
   function fetchLikesFromCountAPI(articleId, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', COUNTAPI_BASE + '/get/' + LIKES_PREFIX + articleId);
-    xhr.responseType = 'json';
-    xhr.timeout = 5000;
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 && xhr.response) {
-        if (xhr.response.error) {
-          // Key not found — treat as 0
-          likesCache[articleId] = 0;
-          if (callback) callback(0);
-          return;
-        }
-        if (xhr.response.value !== undefined) {
-          var val = parseInt(xhr.response.value, 10) || 0;
-          likesCache[articleId] = val;
-          if (callback) callback(val);
-        } else {
-          if (callback) callback(likesCache[articleId] || 0);
-        }
-      } else {
-        if (callback) callback(likesCache[articleId] || 0);
-      }
-    };
-    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(likesCache[articleId] || 0); };
-    try { xhr.send(); } catch(e) { if (callback) callback(0); }
+    if (callback) callback(likesCache[articleId] || 0);
   }
   function addLike(articleId, callback) {
     // Increment in Supabase (upsert)
@@ -1015,30 +990,11 @@
         }
         if (callback) callback(likesCache[articleId] || 0);
       }).catch(function() {
-        addLikeCountAPI(articleId, callback);
+        if (callback) callback(likesCache[articleId] || 0);
       });
     } else {
-      addLikeCountAPI(articleId, callback);
+      if (callback) callback(likesCache[articleId] || 0);
     }
-    // Also hit CountAPI for backwards compatibility
-    addLikeCountAPI(articleId, function() {});
-  }
-  function addLikeCountAPI(articleId, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', COUNTAPI_BASE + '/hit/' + LIKES_PREFIX + articleId);
-    xhr.responseType = 'json';
-    xhr.timeout = 5000;
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
-        var val = parseInt(xhr.response.value, 10) || 0;
-        if (!likesCache[articleId] || val > likesCache[articleId]) likesCache[articleId] = val;
-        if (callback) callback(val);
-      } else {
-        if (callback) callback(likesCache[articleId] || 0);
-      }
-    };
-    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(likesCache[articleId] || 0); };
-    try { xhr.send(); } catch(e) { if (callback) callback(0); }
   }
   function getLikes(articleId) {
     return { count: likesCache[articleId] || 0, liked: hasLiked(articleId) };
@@ -1048,7 +1004,6 @@
   }
   // --- Views: Supabase-backed with CountAPI fallback ---
   var viewsCache = {};
-  var COUNTAPI_PREFIX = 'lumiere-interieure-';
   function fetchViews(articleId, callback) {
     if (supabase) {
       supabase.from('blog_views').select('count').eq('article_id', articleId).maybeSingle().then(function(result) {
@@ -1063,32 +1018,9 @@
       fetchViewsFromCountAPI(articleId, callback);
     }
   }
+  // CountAPI hors-service — fallback silencieux
   function fetchViewsFromCountAPI(articleId, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', COUNTAPI_BASE + '/get/' + COUNTAPI_PREFIX + articleId);
-    xhr.responseType = 'json';
-    xhr.timeout = 5000;
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 && xhr.response) {
-        if (xhr.response.error) {
-          // Key not found — treat as 0
-          viewsCache[articleId] = 0;
-          if (callback) callback(0);
-          return;
-        }
-        if (xhr.response.value !== undefined) {
-          var val = parseInt(xhr.response.value, 10) || 0;
-          viewsCache[articleId] = val;
-          if (callback) callback(val);
-        } else {
-          if (callback) callback(viewsCache[articleId] || 0);
-        }
-      } else {
-        if (callback) callback(viewsCache[articleId] || 0);
-      }
-    };
-    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(viewsCache[articleId] || 0); };
-    try { xhr.send(); } catch(e) { if (callback) callback(0); }
+    if (callback) callback(viewsCache[articleId] || 0);
   }
   function addView(articleId, callback) {
     if (supabase) {
@@ -1098,30 +1030,14 @@
         }
         if (callback) callback(viewsCache[articleId] || 0);
       }).catch(function() {
-        addViewCountAPI(articleId, callback);
+        if (callback) callback(viewsCache[articleId] || 0);
       });
     } else {
-      addViewCountAPI(articleId, callback);
+      if (callback) callback(viewsCache[articleId] || 0);
     }
-    addViewCountAPI(articleId, function() {});
   }
-  function addViewCountAPI(articleId, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', COUNTAPI_BASE + '/hit/' + COUNTAPI_PREFIX + articleId);
-    xhr.responseType = 'json';
-    xhr.timeout = 5000;
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 && xhr.response && xhr.response.value !== undefined) {
-        var val = parseInt(xhr.response.value, 10) || 0;
-        if (!viewsCache[articleId] || val > viewsCache[articleId]) viewsCache[articleId] = val;
-        if (callback) callback(val);
-      } else {
-        if (callback) callback(viewsCache[articleId] || 0);
-      }
-    };
-    xhr.onerror = xhr.ontimeout = function() { if (callback) callback(viewsCache[articleId] || 0); };
-    try { xhr.send(); } catch(e) { if (callback) callback(0); }
-  }
+  // addViewCountAPI supprimé — CountAPI hors-service
+  function addViewCountAPI(articleId, callback) { if (callback) callback(viewsCache[articleId] || 0); }
   function updateCardStats(articleId) {
     var card = document.querySelector('.blog-card[data-article="' + articleId + '"]');
     if (!card) return;
