@@ -232,6 +232,13 @@
 
 .header__logo {
   flex-shrink: 0;
+  margin-right: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .header__logo {
+    margin-right: 0;
+  }
 }
 
 .header__logo-img {
