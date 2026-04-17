@@ -235,7 +235,8 @@
   margin-right: var(--space-6);
 }
 
-.header__nav a {
+.header__nav a,
+.nav-auth {
   white-space: nowrap;
 }
 
