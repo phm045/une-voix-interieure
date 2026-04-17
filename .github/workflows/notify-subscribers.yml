@@ -1,14 +1,6 @@
-# =============================================================
-# Une Voix Intérieure — Notification automatique aux abonnés
-# =============================================================
-# Ce workflow détecte les modifications dans le blog, les services
-# et la boutique, puis envoie un email via l'API Brevo aux abonnés.
-#
-# GRATUIT : GitHub Actions (2000 min/mois) + Brevo API (300 emails/jour)
-# =============================================================
-
 name: "📧 Notifier les abonnés"
 
+# Déclenché à chaque push sur main qui modifie index.html
 on:
   push:
     branches: [main]
@@ -19,184 +11,169 @@ jobs:
   detect-and-notify:
     runs-on: ubuntu-latest
     steps:
-      # 1. Récupérer le code source
-      - name: Checkout du code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      # 2. Détecter et envoyer
       - name: Détecter les modifications et notifier
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-          BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          SENDER_NAME: "Une Voix Intérieure"
-          SITE_URL: "https://phm045.github.io/une-voix-interieure/"
+          SENDER_EMAIL:  ${{ secrets.SENDER_EMAIL }}
+          SENDER_NAME:   "Une Voix Intérieure"
+          SITE_URL:      "https://une-voix-interieure.fr/"
+          LIST_ID:       "3"
         run: |
           set -euo pipefail
 
-          echo "🔍 Analyse des modifications dans index.html..."
-
-          DIFF=$(git diff HEAD~1 HEAD -- index.html || echo "")
-
+          # ── 1. Détecter les sections modifiées ──────────────────────────
+          DIFF=$(git diff HEAD~1 HEAD -- index.html 2>/dev/null || echo "")
           if [ -z "$DIFF" ]; then
             echo "Aucune modification dans index.html"
             exit 0
           fi
 
-          # Détecter les sections modifiées
           BLOG=false; SERVICES=false; BOUTIQUE=false; THERAPIE=false
 
-          echo "$DIFF" | grep -qiE '(blog-card|data-article|blog-card__title|blog-card__excerpt|id="blog")' && BLOG=true || true
-          echo "$DIFF" | grep -qiE '(service-card|service-card__price|service-card__title|id="services")' && SERVICES=true || true
-          echo "$DIFF" | grep -qiE '(boutique|boutique-coming|boutique-product|id="boutique")' && BOUTIQUE=true || true
-          echo "$DIFF" | grep -qiE '(therapie|thérapie|id="therapie")' && THERAPIE=true || true
+          echo "$DIFF" | grep -qiE '(blog-card|data-article|blog-card__title|id="blog")' \
+            && BLOG=true || true
+          echo "$DIFF" | grep -qiE '(service-card|service-card__price|service-card__title|id="services")' \
+            && SERVICES=true || true
+          echo "$DIFF" | grep -qiE '(boutique|boutique-product|id="boutique")' \
+            && BOUTIQUE=true || true
+          echo "$DIFF" | grep -qiE '(therapie|thérapie|id="therapie")' \
+            && THERAPIE=true || true
 
           if ! $BLOG && ! $SERVICES && ! $BOUTIQUE && ! $THERAPIE; then
-            echo "Aucune modification dans les sections surveillées (blog, services, boutique, thérapie)"
+            echo "Pas de modification dans les sections surveillées"
             exit 0
           fi
 
-          echo "📝 Blog=$BLOG | 🛎️ Services=$SERVICES | 🛍️ Boutique=$BOUTIQUE | 💆 Thérapie=$THERAPIE"
+          echo "Blog=$BLOG | Services=$SERVICES | Boutique=$BOUTIQUE | Thérapie=$THERAPIE"
 
-          # --- Construire le sujet et le contenu ---
+          # ── 2. Construire sujet + sections HTML ─────────────────────────
           SUBJECT=""
           BODY_SECTIONS=""
 
           if $BLOG; then
-            # Extraire les titres des nouveaux articles
-            NEW_TITLE=$(git diff HEAD~1 HEAD -- index.html | grep "^+" | grep -oP '(?<=blog-card__title">)[^<]+' | head -1 || echo "")
+            NEW_TITLE=$(git diff HEAD~1 HEAD -- index.html \
+              | grep "^+" | grep -oP '(?<=blog-card__title">)[^<]+' | head -1 || echo "")
             if [ -n "$NEW_TITLE" ]; then
               SUBJECT="Nouveau sur le blog : ${NEW_TITLE}"
-              BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:30px;\">Nouveau sur le blog</h2><p style=\"font-size:16px;\">$NEW_TITLE</p>"
+              BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:28px;\">Nouveau sur le blog</h2><p style=\"font-size:16px;color:#444;\">${NEW_TITLE}</p>"
             else
               SUBJECT="Le blog a été mis à jour"
-              BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:30px;\">Blog mis à jour</h2><p style=\"font-size:16px;\">De nouveaux contenus vous attendent.</p>"
+              BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:28px;\">Blog mis à jour</h2><p style=\"font-size:16px;color:#444;\">De nouveaux contenus vous attendent.</p>"
             fi
           fi
 
           if $SERVICES; then
             [ -z "$SUBJECT" ] && SUBJECT="Nouveauté dans les services"
-            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:30px;\">Services mis à jour</h2><p style=\"font-size:16px;\">Les consultations et services ont été mis à jour.</p>"
+            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:28px;\">Services mis à jour</h2><p style=\"font-size:16px;color:#444;\">Les consultations ont été mises à jour.</p>"
           fi
 
           if $BOUTIQUE; then
             [ -z "$SUBJECT" ] && SUBJECT="Nouveauté dans la boutique"
-            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:30px;\">Boutique</h2><p style=\"font-size:16px;\">La boutique a été mise à jour !</p>"
+            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:28px;\">Boutique</h2><p style=\"font-size:16px;color:#444;\">La boutique a été mise à jour !</p>"
           fi
 
           if $THERAPIE; then
-            [ -z "$SUBJECT" ] && SUBJECT="Mise à jour des soins thérapeutiques"
-            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:30px;\">Thérapie &amp; Bien-être</h2><p style=\"font-size:16px;\">Les soins thérapeutiques ont été mis à jour.</p>"
+            [ -z "$SUBJECT" ] && SUBJECT="Mise à jour thérapeutique"
+            BODY_SECTIONS="${BODY_SECTIONS}<h2 style=\"color:#8b5e3c;margin-top:28px;\">Thérapie &amp; Bien-être</h2><p style=\"font-size:16px;color:#444;\">Les soins thérapeutiques ont été mis à jour.</p>"
           fi
 
           [ -z "$SUBJECT" ] && SUBJECT="Nouveautés sur Une Voix Intérieure"
 
-          # --- Construire le HTML complet via un fichier (évite les problèmes de quotes) ---
-          cat > /tmp/email.html << 'HTMLEOF'
-          <!DOCTYPE html>
-          <html lang="fr">
-          <head><meta charset="UTF-8"></head>
-          <body style="margin:0;padding:0;background-color:#faf8f5;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;">
-            <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-              <div style="background:linear-gradient(135deg,#1a1a2e 0%,#2d1b4e 100%);padding:40px 30px;text-align:center;">
-                <h1 style="color:#d4a574;font-size:24px;margin:0;font-weight:300;letter-spacing:2px;">Une Voix Intérieure</h1>
-                <p style="color:#c0b0a0;font-size:14px;margin-top:8px;">Voyance &amp; Guidance</p>
-              </div>
-              <div style="padding:30px;">
-                <p style="font-size:16px;color:#333;line-height:1.6;">
-                  Bonjour {{ contact.PRENOM | default: "cher(e) abonné(e)" }},
-                </p>
-                <p style="font-size:16px;color:#333;line-height:1.6;">
-                  De nouvelles mises à jour vous attendent sur <strong>Une Voix Intérieure</strong> :
-                </p>
-                %%BODY_SECTIONS%%
-                <div style="text-align:center;margin:35px 0;">
-                  <a href="%%SITE_URL%%" style="display:inline-block;background:linear-gradient(135deg,#8b5e3c,#d4a574);color:#ffffff;text-decoration:none;padding:14px 35px;border-radius:8px;font-size:16px;font-weight:600;">
-                    Découvrir les nouveautés
-                  </a>
-                </div>
-                <p style="font-size:14px;color:#888;line-height:1.5;">
-                  À très bientôt,<br>
-                  <em>Philippe — Une Voix Intérieure</em>
-                </p>
-              </div>
-              <div style="background:#f5f0eb;padding:20px 30px;text-align:center;border-top:1px solid #e8e0d8;">
-                <p style="font-size:12px;color:#999;margin:0;">
-                  Vous recevez cet email car vous êtes inscrit(e) à la newsletter de Une Voix Intérieure.<br>
-                  <a href="{{ unsubscribe }}" style="color:#8b5e3c;">Se désinscrire</a>
-                </p>
-              </div>
-            </div>
-          </body>
-          </html>
-          HTMLEOF
+          # ── 3. Récupérer la liste des abonnés ───────────────────────────
+          echo "Récupération des abonnés (liste ${LIST_ID})..."
 
-          # Remplacer les placeholders dans le fichier
-          sed -i "s|%%BODY_SECTIONS%%|${BODY_SECTIONS}|g" /tmp/email.html
-          sed -i "s|%%SITE_URL%%|${SITE_URL}|g" /tmp/email.html
-
-          # Lire le HTML et encoder en JSON proprement avec jq
-          HTML_JSON=$(jq -Rs . < /tmp/email.html)
-
-          # Construire le payload JSON proprement avec jq
-          PAYLOAD=$(jq -n \
-            --arg sender_name "$SENDER_NAME" \
-            --arg sender_email "$SENDER_EMAIL" \
-            --arg campaign_name "Auto — $(date +'%d/%m/%Y %H:%M')" \
-            --arg subject "$SUBJECT" \
-            --argjson html_content "$HTML_JSON" \
-            --argjson list_id "$BREVO_LIST_ID" \
-            '{
-              sender: { name: $sender_name, email: $sender_email },
-              name: $campaign_name,
-              subject: $subject,
-              htmlContent: $html_content,
-              recipients: { listIds: [$list_id] },
-              inlineImageActivation: false,
-              sendAtBestTime: false
-            }')
-
-          echo "📧 Envoi de la campagne via Brevo..."
-
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://api.brevo.com/v3/emailCampaigns" \
-            -H "accept: application/json" \
+          CONTACTS_RESP=$(curl -sf \
+            "https://api.brevo.com/v3/contacts?listId=${LIST_ID}&limit=100&sort=desc" \
             -H "api-key: ${BREVO_API_KEY}" \
-            -H "content-type: application/json" \
-            -d "$PAYLOAD")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-
-          echo "Réponse Brevo (HTTP ${HTTP_CODE}): ${BODY}"
-
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            CAMPAIGN_ID=$(echo "$BODY" | jq -r '.id')
-            echo "✅ Campagne créée (ID: ${CAMPAIGN_ID})"
-
-            # Envoyer immédiatement
-            SEND_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-              "https://api.brevo.com/v3/emailCampaigns/${CAMPAIGN_ID}/sendNow" \
-              -H "accept: application/json" \
-              -H "api-key: ${BREVO_API_KEY}")
-
-            SEND_CODE=$(echo "$SEND_RESPONSE" | tail -1)
-            echo "📤 Envoi immédiat (HTTP ${SEND_CODE})"
-
-            if [ "$SEND_CODE" -ge 200 ] && [ "$SEND_CODE" -lt 300 ]; then
-              echo "✅ Email envoyé avec succès aux abonnés !"
-            else
-              echo "⚠️ Erreur lors de l'envoi : $(echo "$SEND_RESPONSE" | sed '$d')"
-              exit 1
-            fi
-          else
-            echo "❌ Erreur lors de la création de la campagne"
-            echo "$BODY"
+            -H "accept: application/json") || {
+            echo "❌ Impossible de récupérer les abonnés"
             exit 1
+          }
+
+          TOTAL=$(echo "$CONTACTS_RESP" | jq '.count // 0')
+          echo "Abonnés trouvés : ${TOTAL}"
+
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "Aucun abonné, rien à envoyer"
+            exit 0
           fi
 
-          echo "========================================="
-          echo "📊 Résumé : Blog=$BLOG Services=$SERVICES Boutique=$BOUTIQUE Thérapie=$THERAPIE"
-          echo "========================================="
+          # ── 4. Construire le HTML de l'email ────────────────────────────
+          HTML_BODY=$(cat << HTMLEOF
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#faf8f5;font-family:Georgia,serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#1a1a2e 0%,#2d1b4e 100%);padding:40px 30px;text-align:center;">
+    <h1 style="color:#d4a574;font-size:22px;margin:0;font-weight:300;letter-spacing:3px;">Une Voix Intérieure</h1>
+    <p style="color:#c0b0a0;font-size:13px;margin:8px 0 0;">Voyance &amp; Guidance</p>
+  </div>
+  <div style="padding:32px 30px;">
+    <p style="font-size:16px;color:#333;line-height:1.7;">Bonjour,</p>
+    <p style="font-size:16px;color:#333;line-height:1.7;">De nouvelles mises à jour vous attendent sur <strong>Une Voix Intérieure</strong>&nbsp;:</p>
+    BODY_SECTIONS_PLACEHOLDER
+    <div style="text-align:center;margin:36px 0 24px;">
+      <a href="SITE_URL_PLACEHOLDER" style="display:inline-block;background:linear-gradient(135deg,#8b5e3c,#d4a574);color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:16px;font-weight:600;">Découvrir les nouveautés</a>
+    </div>
+    <p style="font-size:14px;color:#888;line-height:1.6;">À très bientôt,<br><em>Philippe — Une Voix Intérieure</em></p>
+  </div>
+  <div style="background:#f5f0eb;padding:18px 30px;text-align:center;border-top:1px solid #e8e0d8;">
+    <p style="font-size:12px;color:#999;margin:0;">
+      Vous recevez cet email car vous êtes inscrit(e) à la newsletter.<br>
+      <a href="{{ unsubscribe }}" style="color:#8b5e3c;">Se désinscrire</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>
+HTMLEOF
+)
+          # Injecter les sections dynamiques
+          HTML_BODY="${HTML_BODY//BODY_SECTIONS_PLACEHOLDER/$BODY_SECTIONS}"
+          HTML_BODY="${HTML_BODY//SITE_URL_PLACEHOLDER/$SITE_URL}"
+
+          # ── 5. Envoyer via sendTransacEmail (1 appel par abonné) ────────
+          # Plus fiable que createCampaign+sendNow (pas de délai, pas d'état "draft")
+
+          echo "$CONTACTS_RESP" | jq -r '.contacts[] | [.email, (.attributes.PRENOM // "")] | @tsv' \
+          | while IFS=$'\t' read -r EMAIL PRENOM; do
+            # Personnaliser le prénom
+            PERSONAL_HTML="${HTML_BODY//Bonjour,/Bonjour ${PRENOM:-},}"
+
+            PAYLOAD=$(jq -n \
+              --arg subject  "$SUBJECT" \
+              --arg html     "$PERSONAL_HTML" \
+              --arg to_email "$EMAIL" \
+              --arg to_name  "${PRENOM:-Abonné(e)}" \
+              --arg from_email "$SENDER_EMAIL" \
+              --arg from_name  "$SENDER_NAME" \
+              '{
+                sender:      { name: $from_name, email: $from_email },
+                to:          [{ email: $to_email, name: $to_name }],
+                subject:     $subject,
+                htmlContent: $html
+              }')
+
+            RESP=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "https://api.brevo.com/v3/smtp/email" \
+              -H "api-key: ${BREVO_API_KEY}" \
+              -H "content-type: application/json" \
+              -d "$PAYLOAD")
+
+            if [ "$RESP" -ge 200 ] && [ "$RESP" -lt 300 ]; then
+              echo "  ✅ Envoyé à ${EMAIL} (HTTP ${RESP})"
+            else
+              echo "  ⚠️  Échec pour ${EMAIL} (HTTP ${RESP})"
+            fi
+
+            # Respecter le rate limit Brevo (10 req/s)
+            sleep 0.15
+          done
+
+          echo "✅ Notifications envoyées avec succès"

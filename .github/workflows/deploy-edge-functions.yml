@@ -31,9 +31,33 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -e
-          echo "🚀 Déploiement de visitor-counter..."
-          supabase functions deploy visitor-counter \
-            --project-ref dhbbwzpfwtdtdiuixrmq \
-            --no-verify-jwt \
-            --debug 2>&1 || { echo "❌ Échec du déploiement"; exit 1; }
-          echo "✅ visitor-counter déployé avec succès"
+          PROJECT_REF="dhbbwzpfwtdtdiuixrmq"
+
+          deploy_fn() {
+            local fn="$1"
+            local no_jwt="$2"
+            echo "🚀 Déploiement de ${fn}..."
+            if [ "$no_jwt" = "true" ]; then
+              supabase functions deploy "$fn" \
+                --project-ref "$PROJECT_REF" \
+                --no-verify-jwt 2>&1 || { echo "❌ Échec du déploiement de ${fn}"; exit 1; }
+            else
+              supabase functions deploy "$fn" \
+                --project-ref "$PROJECT_REF" 2>&1 || { echo "❌ Échec du déploiement de ${fn}"; exit 1; }
+            fi
+            echo "✅ ${fn} déployé avec succès"
+          }
+
+          # visitor-counter : sans JWT (appelé depuis le front public)
+          deploy_fn visitor-counter true
+
+          # brevo-proxy : sans JWT (appelé depuis le front pour s'inscrire/newsletter)
+          deploy_fn brevo-proxy true
+
+          # cal-proxy : sans JWT (calendrier public)
+          deploy_fn cal-proxy true
+
+          # stripe-checkout : sans JWT (paiement public)
+          deploy_fn stripe-checkout true
+
+          echo "✅ Toutes les Edge Functions déployées avec succès"
