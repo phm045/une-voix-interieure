@@ -769,6 +769,8 @@ section {
   z-index: 3;
   max-width: 650px;
   padding: var(--space-8);
+  margin-inline: auto;
+  text-align: center;
 }
 
 .hero__tagline {
@@ -843,6 +845,7 @@ section {
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* ========================================
