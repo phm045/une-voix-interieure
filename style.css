@@ -243,13 +243,19 @@
   display: block;
   object-fit: contain;
   flex-shrink: 0;
-  /* Saturation + contraste pour rendre l'or plus présent sur fond crème */
-  filter: saturate(1.35) contrast(1.12);
+  /* Contour noir + saturation pour faire ressortir le texte iridescent */
+  filter:
+    saturate(1.35) contrast(1.12)
+    drop-shadow(0 0 1.5px rgba(20, 15, 10, 0.95))
+    drop-shadow(0 0 2.5px rgba(20, 15, 10, 0.75))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 [data-theme="dark"] .header__logo-img {
-  /* Mode sombre: légère luminosité pour faire briller l'or */
-  filter: saturate(1.25) brightness(1.08);
+  /* Mode sombre: légère luminosité, pas de contour noir (fond déjà sombre) */
+  filter:
+    saturate(1.25) brightness(1.08)
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.6));
 }
 
 @keyframes logo-glow {
@@ -286,8 +292,12 @@
   width: 280px;
   max-width: 280px;
   margin-inline: auto;
-  /* Contraste renforcé pour la lisibilité dans le footer */
-  filter: saturate(1.4) contrast(1.15);
+  /* Contour noir + contraste renforcé pour la lisibilité dans le footer */
+  filter:
+    saturate(1.4) contrast(1.15)
+    drop-shadow(0 0 1.5px rgba(20, 15, 10, 0.95))
+    drop-shadow(0 0 2.5px rgba(20, 15, 10, 0.75))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .footer__brand .header__logo::before {
