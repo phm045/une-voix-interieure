@@ -2,11 +2,17 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ALLOWED_PREFIXES = ["/v3/contacts", "/v3/smtp/email", "/v3/emailCampaigns"];
+// Endpoints Brevo autorisés (toujours des appels POST vers le proxy,
+// mais le proxy peut faire GET/POST vers Brevo selon le champ `method`)
+const ALLOWED_PREFIXES = [
+  "/v3/contacts",
+  "/v3/smtp/email",
+  "/v3/emailCampaigns",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,7 +34,17 @@ serve(async (req) => {
     });
   }
 
-  const { endpoint, method, body } = await req.json();
+  let body: { endpoint?: string; method?: string; body?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { endpoint, method, body: payload } = body;
 
   if (!endpoint || !ALLOWED_PREFIXES.some((p) => endpoint.startsWith(p))) {
     return new Response(JSON.stringify({ error: "Endpoint not allowed" }), {
@@ -37,29 +53,38 @@ serve(async (req) => {
     });
   }
 
-  const headers: Record<string, string> = {
+  const httpMethod = (method || "POST").toUpperCase();
+
+  const fetchHeaders: Record<string, string> = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "api-key": apiKey,
   };
 
   const fetchOptions: RequestInit = {
-    method: method || "POST",
-    headers,
+    method: httpMethod,
+    headers: fetchHeaders,
   };
 
-  if (body && method !== "GET") {
-    fetchOptions.body = JSON.stringify(body);
+  if (payload && httpMethod !== "GET" && httpMethod !== "DELETE") {
+    fetchOptions.body = JSON.stringify(payload);
   }
 
-  const response = await fetch(`https://api.brevo.com${endpoint}`, fetchOptions);
-  const responseBody = await response.text();
+  try {
+    const response = await fetch(`https://api.brevo.com${endpoint}`, fetchOptions);
+    const responseBody = await response.text();
 
-  return new Response(responseBody, {
-    status: response.status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": response.headers.get("Content-Type") || "application/json",
-    },
-  });
+    return new Response(responseBody, {
+      status: response.status,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": response.headers.get("Content-Type") || "application/json",
+      },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Upstream fetch failed", detail: String(err) }), {
+      status: 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });
