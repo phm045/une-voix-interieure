@@ -456,28 +456,11 @@
   letter-spacing: 0.02em;
 }
 
-/* Desktop : nav en ligne, pas en overlay */
+/* Desktop : hamburger seul — la nav reste en overlay comme sur mobile */
 @media (min-width: 769px) {
-  .header__nav {
-    position: static;
-    opacity: 1;
-    pointer-events: auto;
-    flex-direction: row;
-    height: auto;
-    width: auto;
-    padding: 0;
-    background: transparent;
-    overflow: visible;
-    gap: var(--space-6);
-    z-index: auto;
-  }
-  .header__nav a {
-    font-size: var(--text-sm);
-    font-family: var(--font-body);
-    min-height: auto;
-  }
+  /* hamburger toujours visible */
   .hamburger {
-    display: none;
+    display: flex;
   }
 }
 
