@@ -259,10 +259,6 @@
 
     <section>
       <div class="container">
-        <div class="stripe-notice" style="background:#fef9ec;border:1px solid #f0d080;border-radius:10px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:flex-start;gap:12px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b8860b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <p style="margin:0;font-size:0.9rem;color:#7a5c00;line-height:1.5;">Lors du paiement par carte, vous verrez apparaître le nom <strong>Lumière Intérieure</strong> sur votre relevé bancaire. C'est tout à fait normal — aucune inquiétude. L'incident d'affichage est en cours de résolution.</p>
-        </div>
         <div class="services-grid">
 
           <div class="service-card fade-in">
@@ -2548,8 +2544,9 @@
   </div>
 
   <!-- Sub-button: Musique / Sons de guérison -->
-  <div class="ufab__action ufab__action--sound" id="ufab-sound" data-tooltip="Bol chantant">
-    <button class="ufab__action-btn" id="sound-toggle" aria-label="Activer les sons de guérison" title="Sons de guérison">
+  <div class="ufab__action ufab__action--sound" id="ufab-sound" data-tooltip="ℹ️ Lumière Intérieure sur votre relevé bancaire — c'est normal">
+    <button class="ufab__action-btn" id="sound-toggle" aria-label="Activer les sons de guérison" title="Sons de guérison" style="position:relative;">
+    <span style="position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10;pointer-events:none;">!</span>
       <svg class="sound-healer__icon sound-healer__icon--off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M11 5L6 9H2v6h4l5 4V5z"/>
         <line x1="23" y1="9" x2="17" y2="15"/>
