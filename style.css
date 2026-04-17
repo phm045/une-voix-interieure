@@ -2172,9 +2172,9 @@ section {
    ======================================== */
 .boutique-coming {
   text-align: center;
-  max-width: 600px;
+  max-width: 640px;
   margin-inline: auto;
-  padding: var(--space-8);
+  padding: var(--space-10) var(--space-6);
 }
 .boutique-coming__icon {
   color: var(--color-accent);
@@ -4881,19 +4881,17 @@ textarea.blog-comments__input {
 }
 
 /* ─── Boutique Products Grid ─── */
+/* ─── Section principale boutique ─── */
+.boutique-main {
+  padding-block: var(--space-8);
+}
+
 .boutique-products-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1.75rem;
+  margin-bottom: 2.5rem;
   align-items: start;
-  justify-items: center;
-}
-.boutique-products-grid > * {
-  width: 100%;
-}
-.boutique-products-grid > *:last-child:nth-child(3n + 1) {
-  grid-column: 2;
 }
 .boutique-products-grid:empty {
   display: none;
@@ -6222,14 +6220,16 @@ textarea.blog-comments__input {
 }
 
 /* ─── Responsive: Admin & Boutique ─── */
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .boutique-products-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .boutique-products-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   .admin-add-btn {
     min-height: 160px;
@@ -9171,11 +9171,8 @@ a, button, [role="button"] {
   }
 }
 
-/* ─── 16. Tablet (769px–1024px): 2 columns for products ─── */
+/* ─── 16. Tablet (769px–1024px): already handled above ─── */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .boutique-products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .nouveautes-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
