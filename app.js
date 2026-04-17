@@ -2446,8 +2446,6 @@ function getComments(articleId) {
               afficherMessage('coupon-message', 'Erreur lors de l\u2019application du coupon.', 'erreur');
             } else {
               // console.log('[Coupon] Coupon appliqu\u00e9 avec succ\u00e8s:', code,
-                '| R\u00e9duction:', coupon.reduction_pourcent ? coupon.reduction_pourcent + '%' : coupon.reduction_montant + '\u20ac',
-                '| Applicable \u00e0:', coupon.applicable_a);
               var red = coupon.reduction_pourcent
                 ? '-' + coupon.reduction_pourcent + '%'
                 : '-' + Number(coupon.reduction_montant).toFixed(2) + ' \u20ac';
@@ -3047,10 +3045,6 @@ function getComments(articleId) {
         if (pendingPaypalCoupon && pendingPaypalOriginalAmount > 0) {
           var reduit = calculerMontantReduit(pendingPaypalOriginalAmount, pendingPaypalCoupon);
           // console.log('[Coupon PayPal] Service:', pendingPaypalServiceName,
-            '| Prix original:', pendingPaypalOriginalAmount + '\u20ac',
-            '| Coupon:', pendingPaypalCoupon.code,
-            '| R\u00e9duction:', formatReduction(pendingPaypalCoupon),
-            '| Prix r\u00e9duit:', reduit.toFixed(2) + '\u20ac');
           var amountInput = pendingPaypalForm.querySelector('input[name="amount"]');
           if (amountInput) amountInput.value = reduit.toFixed(2);
           var itemNameInput = pendingPaypalForm.querySelector('input[name="item_name"]');
@@ -3133,9 +3127,6 @@ function getComments(articleId) {
         // Coupon actif : ouvrir le Payment Link avec le code promo pr\u00e9-rempli
         var stripeUrl = buildStripeUrlWithPromo(pendingStripeUrl, pendingStripeCoupon.code);
         // console.log('[Coupon Stripe] Service:', pendingStripeServiceName,
-          '| Prix original:', pendingStripeOriginalAmount + '\u20ac',
-          '| Coupon:', pendingStripeCoupon.code,
-          '| R\u00e9duction:', formatReduction(pendingStripeCoupon));
         closeAllModals();
         if (stripeUrl) {
           window.open(stripeUrl, '_blank', 'noopener,noreferrer');
