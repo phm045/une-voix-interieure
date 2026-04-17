@@ -46,7 +46,8 @@
   // --- Theme Toggle ---
   const toggle = document.querySelector('[data-theme-toggle]');
   const root = document.documentElement;
-  let theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  var savedTheme = localStorage.getItem('uviTheme');
+  let theme = savedTheme ? savedTheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   root.setAttribute('data-theme', theme);
   updateToggleIcon();
 
@@ -54,6 +55,7 @@
     toggle.addEventListener('click', function () {
       theme = theme === 'dark' ? 'light' : 'dark';
       root.setAttribute('data-theme', theme);
+      localStorage.setItem('uviTheme', theme);
       updateToggleIcon();
     });
   }
@@ -1027,8 +1029,21 @@
     var heartBtn = card.querySelector('.blog-card__heart');
     var heartCount = card.querySelector('.heart-count');
     var likes = getLikes(articleId);
-    if (viewEl && viewsCache[articleId] !== undefined) viewEl.textContent = viewsCache[articleId];
-    if (heartCount) heartCount.textContent = likes.count;
+    if (viewEl) {
+      var views = viewsCache[articleId];
+      if (views !== undefined) {
+        viewEl.textContent = views;
+        var viewParent = viewEl.closest('.blog-card__views');
+        if (viewParent) viewParent.style.visibility = views > 0 ? 'visible' : 'hidden';
+      } else {
+        var viewParent2 = viewEl.closest('.blog-card__views');
+        if (viewParent2) viewParent2.style.visibility = 'hidden';
+      }
+    }
+    if (heartCount) {
+      heartCount.textContent = likes.count;
+      if (heartBtn) heartBtn.style.visibility = likes.count > 0 || likes.liked ? 'visible' : 'hidden';
+    }
     if (heartBtn) {
       if (likes.liked) { heartBtn.classList.add('hearted'); heartBtn.querySelector('svg').setAttribute('fill', 'var(--color-terracotta)'); }
       else { heartBtn.classList.remove('hearted'); heartBtn.querySelector('svg').setAttribute('fill', 'none'); }
@@ -2086,7 +2101,7 @@ function getComments(articleId) {
           usage_id: cu.id
         };
         _couponCacheTime = Date.now();
-        console.log('[Coupon] Coupon actif trouv\u00e9:', c.code, '| R\u00e9duction:', c.reduction_pourcent ? c.reduction_pourcent + '%' : c.reduction_montant + '\u20ac');
+        // console.log('[Coupon] Coupon actif trouv\u00e9:', c.code, '| R\u00e9duction:', c.reduction_pourcent ? c.reduction_pourcent + '%' : c.reduction_montant + '\u20ac');
         return _cachedCoupon;
       }
 
@@ -2135,7 +2150,7 @@ function getComments(articleId) {
     if (!couponCode) return baseUrl;
     var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
     var url = baseUrl + separator + 'prefilled_promo_code=' + encodeURIComponent(couponCode);
-    console.log('[Coupon Stripe] URL avec code promo:', url);
+    // console.log('[Coupon Stripe] URL avec code promo:', url);
     return url;
   }
 
@@ -2148,7 +2163,7 @@ function getComments(articleId) {
 
     if (!sessionId) return;
 
-    console.log('[Stripe] Retour de paiement d\u00e9tect\u00e9, session:', sessionId);
+    // console.log('[Stripe] Retour de paiement d\u00e9tect\u00e9, session:', sessionId);
 
     // Nettoyer l'URL
     history.replaceState(null, '', window.location.pathname + '#mon-compte');
@@ -2165,7 +2180,7 @@ function getComments(articleId) {
         .maybeSingle();
 
       if (existe) {
-        console.log('[Stripe] Session d\u00e9j\u00e0 enregistr\u00e9e, ignor\u00e9e');
+        // console.log('[Stripe] Session d\u00e9j\u00e0 enregistr\u00e9e, ignor\u00e9e');
         return;
       }
 
@@ -2192,7 +2207,7 @@ function getComments(articleId) {
           montant = 0;
         }
       } else {
-        console.log('[Stripe] Service key inconnu:', serviceKey);
+        // console.log('[Stripe] Service key inconnu:', serviceKey);
         return;
       }
 
@@ -2209,7 +2224,7 @@ function getComments(articleId) {
       }, 'enregistrement de la commande');
       var commande = commandeResult && !commandeResult.error ? commandeResult.data : null;
 
-      console.log('[Stripe] Commande enregistr\u00e9e:', serviceName, montant + '\u20ac');
+      // console.log('[Stripe] Commande enregistr\u00e9e:', serviceName, montant + '\u20ac');
 
       // Toast de confirmation paiement Stripe
       (function() {
@@ -2397,13 +2412,13 @@ function getComments(articleId) {
           .maybeSingle();
 
         if (!coupon) {
-          console.log('[Coupon] Code invalide ou introuvable:', code);
+          // console.log('[Coupon] Code invalide ou introuvable:', code);
           afficherMessage('coupon-message', 'Code coupon invalide ou expir\u00e9.', 'erreur');
         } else if (coupon.valide_jusqu_au && new Date(coupon.valide_jusqu_au) < new Date()) {
-          console.log('[Coupon] Coupon expir\u00e9:', code, '| Expiration:', coupon.valide_jusqu_au);
+          // console.log('[Coupon] Coupon expir\u00e9:', code, '| Expiration:', coupon.valide_jusqu_au);
           afficherMessage('coupon-message', 'Ce coupon a expir\u00e9.', 'erreur');
         } else if (coupon.usage_max && coupon.usage_actuel >= coupon.usage_max) {
-          console.log('[Coupon] Usage max atteint:', code, '|', coupon.usage_actuel + '/' + coupon.usage_max);
+          // console.log('[Coupon] Usage max atteint:', code, '|', coupon.usage_actuel + '/' + coupon.usage_max);
           afficherMessage('coupon-message', 'Ce coupon a atteint son nombre maximum d\u2019utilisations.', 'erreur');
         } else {
           // V\u00e9rifier si d\u00e9j\u00e0 utilis\u00e9 par ce client
@@ -2415,7 +2430,7 @@ function getComments(articleId) {
             .maybeSingle();
 
           if (dejaUtilise) {
-            console.log('[Coupon] D\u00e9j\u00e0 utilis\u00e9 par cet utilisateur:', code);
+            // console.log('[Coupon] D\u00e9j\u00e0 utilis\u00e9 par cet utilisateur:', code);
             afficherMessage('coupon-message', 'Vous avez d\u00e9j\u00e0 utilis\u00e9 ce coupon.', 'erreur');
           } else {
             // Enregistrer l'utilisation
@@ -2430,7 +2445,7 @@ function getComments(articleId) {
               console.error('[Coupon] Erreur insertion:', insertError);
               afficherMessage('coupon-message', 'Erreur lors de l\u2019application du coupon.', 'erreur');
             } else {
-              console.log('[Coupon] Coupon appliqu\u00e9 avec succ\u00e8s:', code,
+              // console.log('[Coupon] Coupon appliqu\u00e9 avec succ\u00e8s:', code,
                 '| R\u00e9duction:', coupon.reduction_pourcent ? coupon.reduction_pourcent + '%' : coupon.reduction_montant + '\u20ac',
                 '| Applicable \u00e0:', coupon.applicable_a);
               var red = coupon.reduction_pourcent
@@ -2721,7 +2736,7 @@ function getComments(articleId) {
         .maybeSingle();
 
       if (existant) {
-        console.log('[PayPal] Commande déjà enregistrée, ignorée');
+        // console.log('[PayPal] Commande déjà enregistrée, ignorée');
         showPage('mon-compte');
         return;
       }
@@ -2736,7 +2751,7 @@ function getComments(articleId) {
         });
       }, 'enregistrement commande PayPal');
 
-      console.log('[PayPal] Commande enregistrée:', serviceName, amount + '€');
+      // console.log('[PayPal] Commande enregistrée:', serviceName, amount + '€');
 
       // Toast de confirmation paiement PayPal
       (function() {
@@ -2901,7 +2916,7 @@ function getComments(articleId) {
       });
 
       if (sendResp.ok || sendResp.status === 204) {
-        console.log('Newsletter envoyee aux abonnes pour: ' + titre);
+        // console.log('Newsletter envoyee aux abonnes pour: ' + titre);
         return true;
       } else {
         console.warn('Erreur envoi campagne:', await sendResp.text());
@@ -3031,7 +3046,7 @@ function getComments(articleId) {
         // Appliquer le coupon au montant PayPal
         if (pendingPaypalCoupon && pendingPaypalOriginalAmount > 0) {
           var reduit = calculerMontantReduit(pendingPaypalOriginalAmount, pendingPaypalCoupon);
-          console.log('[Coupon PayPal] Service:', pendingPaypalServiceName,
+          // console.log('[Coupon PayPal] Service:', pendingPaypalServiceName,
             '| Prix original:', pendingPaypalOriginalAmount + '\u20ac',
             '| Coupon:', pendingPaypalCoupon.code,
             '| R\u00e9duction:', formatReduction(pendingPaypalCoupon),
@@ -3044,7 +3059,7 @@ function getComments(articleId) {
           }
           invalidateCouponCache();
         } else {
-          console.log('[PayPal] Paiement sans coupon pour:', pendingPaypalServiceName);
+          // console.log('[PayPal] Paiement sans coupon pour:', pendingPaypalServiceName);
         }
         pendingPaypalForm.submit();
         pendingPaypalForm = null;
@@ -3091,7 +3106,7 @@ function getComments(articleId) {
           discountEl.textContent = 'Coupon ' + pendingStripeCoupon.code + ' appliqu\u00e9 : ' + formatReduction(pendingStripeCoupon) + ' (prix initial : ' + pendingStripeOriginalAmount.toFixed(2) + ' \u20ac). Le code promo sera pr\u00e9-rempli sur la page de paiement Stripe.';
           discountEl.hidden = false;
         }
-        console.log('[Coupon Stripe] Coupon d\u00e9tect\u00e9:', pendingStripeCoupon.code, '| Service:', serviceName, '| Prix r\u00e9duit:', reduit.toFixed(2) + '\u20ac');
+        // console.log('[Coupon Stripe] Coupon d\u00e9tect\u00e9:', pendingStripeCoupon.code, '| Service:', serviceName, '| Prix r\u00e9duit:', reduit.toFixed(2) + '\u20ac');
       } else {
         if (serviceEl) serviceEl.textContent = serviceName || '';
         if (discountEl) discountEl.hidden = true;
@@ -3117,7 +3132,7 @@ function getComments(articleId) {
       if (pendingStripeCoupon && pendingStripeOriginalAmount > 0) {
         // Coupon actif : ouvrir le Payment Link avec le code promo pr\u00e9-rempli
         var stripeUrl = buildStripeUrlWithPromo(pendingStripeUrl, pendingStripeCoupon.code);
-        console.log('[Coupon Stripe] Service:', pendingStripeServiceName,
+        // console.log('[Coupon Stripe] Service:', pendingStripeServiceName,
           '| Prix original:', pendingStripeOriginalAmount + '\u20ac',
           '| Coupon:', pendingStripeCoupon.code,
           '| R\u00e9duction:', formatReduction(pendingStripeCoupon));
@@ -3128,7 +3143,7 @@ function getComments(articleId) {
         invalidateCouponCache();
       } else {
         // Pas de coupon : ouvrir le lien Stripe habituel
-        console.log('[Stripe] Paiement sans coupon pour:', pendingStripeServiceName);
+        // console.log('[Stripe] Paiement sans coupon pour:', pendingStripeServiceName);
         closeAllModals();
         if (pendingStripeUrl) {
           window.open(pendingStripeUrl, '_blank', 'noopener,noreferrer');
@@ -3329,7 +3344,15 @@ function getComments(articleId) {
   var btnAjouterAvis = document.getElementById('btn-ajouter-avis');
   if (btnAjouterAvis) {
     btnAjouterAvis.addEventListener('click', function () {
-      openModal('modal-avis');
+      if (!supabase) { openModal('modal-avis'); return; }
+      supabase.auth.getUser().then(function(res) {
+        if (res && res.data && res.data.user) {
+          openModal('modal-avis');
+        } else {
+          showSaveError('Vous devez être connecté(e) pour laisser un avis.');
+          setTimeout(function() { showPage('connexion'); }, 1500);
+        }
+      }).catch(function() { openModal('modal-avis'); });
     });
   }
 
@@ -3666,7 +3689,7 @@ function getComments(articleId) {
             }
           }, 30);
         }).catch(function(e) {
-          console.log('Audio autoplay bloqué:', e);
+          // console.log('Audio autoplay bloqué:', e);
         });
       }
 
@@ -4250,7 +4273,7 @@ function getComments(articleId) {
   var _initDynamicRunning = false;
   async function initDynamicContent(isAdmin) {
     // Prevent concurrent calls — if already running, skip
-    if (_initDynamicRunning) { console.log('[initDynamic] Skipped (already running)'); return; }
+    if (_initDynamicRunning) { return; }
     _initDynamicRunning = true;
     try {
     // Clean up previous dynamic content to prevent duplicates on re-call
@@ -4406,7 +4429,7 @@ function getComments(articleId) {
         productsFromDB = prodResult.data;
       }
     } catch(e) {
-      console.log('[Boutique] Table boutique_products non disponible');
+      // console.log('[Boutique] Table boutique_products non disponible');
     }
 
     // Admin auto-seed : insérer les produits démo en base s'ils n'y sont pas encore
@@ -4414,7 +4437,7 @@ function getComments(articleId) {
       var existingSlugs = productsFromDB.map(function(p) { return p.slug; });
       var toSeed = DEMO_PRODUCTS.filter(function(p) { return existingSlugs.indexOf(p.slug) === -1; });
       if (toSeed.length > 0) {
-        console.log('[Boutique] Auto-seed: insertion de', toSeed.length, 'produits démo en base...');
+        // console.log('[Boutique] Auto-seed: insertion de', toSeed.length, 'produits démo en base...');
         var seedData = toSeed.map(function(p) {
           return { slug: p.slug, name: p.name, description: p.description, price: p.price, category: p.category, image_url: p.image_url, stripe_link: p.stripe_link, visible: p.visible, status: p.status || 'disponible' };
         });
@@ -4423,7 +4446,7 @@ function getComments(articleId) {
           if (seedResult.error) {
             console.warn('[Boutique] Auto-seed erreur:', seedResult.error.message);
           } else {
-            console.log('[Boutique] Auto-seed réussi :', toSeed.length, 'produits insérés');
+            // console.log('[Boutique] Auto-seed réussi :', toSeed.length, 'produits insérés');
             // Uploader les images des nouveaux produits dans Supabase Storage
             for (var si = 0; si < toSeed.length; si++) {
               var sp = toSeed[si];
@@ -4437,7 +4460,7 @@ function getComments(articleId) {
                     if (!seedUpResult.error) {
                       var seedPubUrl = supabase.storage.from('images').getPublicUrl(seedStoragePath);
                       await supabase.from('boutique_products').update({ image_url: seedPubUrl.data.publicUrl }).eq('slug', sp.slug);
-                      console.log('[Boutique] Image seed uploadée:', sp.slug);
+                      // console.log('[Boutique] Image seed uploadée:', sp.slug);
                     }
                   }
                 } catch(seedImgErr) {
@@ -4465,7 +4488,7 @@ function getComments(articleId) {
           || demo.category !== dbp.category;
       });
       if (toUpdate.length > 0) {
-        console.log('[Boutique] Auto-sync:', toUpdate.length, 'produits à mettre à jour...');
+        // console.log('[Boutique] Auto-sync:', toUpdate.length, 'produits à mettre à jour...');
         for (var ui = 0; ui < toUpdate.length; ui++) {
           var dbp = toUpdate[ui];
           var demo = demoBySlug[dbp.slug];
@@ -4483,7 +4506,7 @@ function getComments(articleId) {
                 if (!upResult.error) {
                   var pubUrl = supabase.storage.from('images').getPublicUrl(storagePath);
                   updFields.image_url = pubUrl.data.publicUrl;
-                  console.log('[Boutique] Image uploadée:', demo.slug, '->', updFields.image_url);
+                  // console.log('[Boutique] Image uploadée:', demo.slug, '->', updFields.image_url);
                 } else {
                   console.warn('[Boutique] Upload image erreur:', upResult.error.message);
                   updFields.image_url = demo.image_url;
@@ -4497,7 +4520,7 @@ function getComments(articleId) {
           // Si le produit en base a déjà une image custom, on la conserve (pas de updFields.image_url)
           try {
             await supabase.from('boutique_products').update(updFields).eq('slug', dbp.slug);
-            console.log('[Boutique] Synchro OK:', dbp.slug, '(nom, prix, desc, catégorie, image)');
+            // console.log('[Boutique] Synchro OK:', dbp.slug, '(nom, prix, desc, catégorie, image)');
           } catch(updErr) {
             console.warn('[Boutique] Sync erreur pour', dbp.slug, ':', updErr.message);
           }
@@ -4532,7 +4555,7 @@ function getComments(articleId) {
     } else {
       allProducts = DEMO_PRODUCTS;
     }
-    console.log('[Boutique] Produits chargés:', allProducts.length, '(DB:', productsFromDB.length, ', isAdmin:', isAdmin, ')');
+    // console.log('[Boutique] Produits chargés:', allProducts.length, '(DB:', productsFromDB.length, ', isAdmin:', isAdmin, ')');
 
     if (allProducts.length > 0) {
       // Load all extra images at once (seulement si produits en base)
@@ -5458,10 +5481,10 @@ function getComments(articleId) {
         contenu: cart,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
-      console.log('[Panier] Synchronisé avec Supabase (' + cart.length + ' articles)');
+      // console.log('[Panier] Synchronisé avec Supabase (' + cart.length + ' articles)');
     } catch(e) {
       // Table paniers peut ne pas encore exister — fallback silencieux sur localStorage
-      console.log('[Panier] Sync Supabase non disponible (localStorage utilisé)');
+      // console.log('[Panier] Sync Supabase non disponible (localStorage utilisé)');
     }
   }
 
@@ -5491,10 +5514,10 @@ function getComments(articleId) {
       if (added > 0 || localCart.length === 0) {
         localStorage.setItem(CART_KEY, JSON.stringify(merged));
         updateCartUI();
-        console.log('[Panier] Fusionné depuis Supabase (+' + added + ' articles distants)');
+        // console.log('[Panier] Fusionné depuis Supabase (+' + added + ' articles distants)');
       }
     } catch(e) {
-      console.log('[Panier] Chargement Supabase non disponible');
+      // console.log('[Panier] Chargement Supabase non disponible');
     }
   }
 

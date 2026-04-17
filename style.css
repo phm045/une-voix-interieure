@@ -222,6 +222,10 @@
 .nav-auth {
   white-space: nowrap !important;
 }
+.nav-auth {
+  font-weight: 500 !important;
+  color: var(--color-primary) !important;
+}
 
 @media (max-width: 768px) {
   .header__logo {
@@ -1000,6 +1004,11 @@ section {
   position: relative;
   z-index: 1;
 }
+.service-card__image {
+  aspect-ratio: 4/3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
 
 .service-card:hover {
   transform: translateY(-6px);
@@ -1018,11 +1027,7 @@ section {
 .service-card:nth-child(3) { animation-delay: 0.24s; }
 .service-card:nth-child(4) { animation-delay: 0.36s; }
 
-.service-card__image {
-  aspect-ratio: 4/3;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
+/* service-card__image merged above */
 .service-card__image img {
   width: 100%;
   height: 100%;
@@ -1447,6 +1452,7 @@ section {
   gap: var(--space-1);
   font-size: 0.8rem;
   color: var(--color-text-faint);
+  visibility: hidden;
 }
 .blog-card__views svg {
   opacity: 0.6;
@@ -1464,6 +1470,7 @@ section {
   font-size: 0.8rem;
   color: var(--color-text-faint);
   transition: all 0.25s ease;
+  visibility: hidden;
 }
 .blog-card__heart:hover {
   color: var(--color-terracotta);
@@ -1925,6 +1932,8 @@ section {
   color: var(--color-text-muted);
   text-decoration: none;
   padding-block: var(--space-1);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .footer__col a:hover {
   color: var(--color-text);
@@ -2901,10 +2910,7 @@ textarea.blog-comments__input {
 }
 
 /* --- Navigation auth links --- */
-.nav-auth {
-  font-weight: 500 !important;
-  color: var(--color-primary) !important;
-}
+/* nav-auth properties merged above */
 
 .nav-auth--client[hidden] {
   display: none;
@@ -3467,6 +3473,7 @@ textarea.blog-comments__input {
 }
 
 .modal-card {
+  position: relative;
   background: var(--color-bg);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
@@ -3539,10 +3546,7 @@ textarea.blog-comments__input {
   color: var(--color-text);
 }
 
-/* --- Modal card positioning --- */
-.modal-card {
-  position: relative;
-}
+/* --- Modal card positioning (merged into .modal-card above) --- */
 
 /* --- Wider modal variant --- */
 .modal-card--wide {
@@ -4866,6 +4870,13 @@ textarea.blog-comments__input {
   gap: 1.5rem;
   margin-bottom: 2rem;
   align-items: start;
+  justify-items: center;
+}
+.boutique-products-grid > * {
+  width: 100%;
+}
+.boutique-products-grid > *:last-child:nth-child(3n + 1) {
+  grid-column: 2;
 }
 .boutique-products-grid:empty {
   display: none;
@@ -4882,6 +4893,7 @@ textarea.blog-comments__input {
   flex-direction: column;
   transition: all 0.3s ease;
   position: relative;
+  cursor: pointer;
 }
 .boutique-product-card:hover {
   transform: translateY(-3px);
@@ -5974,9 +5986,7 @@ textarea.blog-comments__input {
   background: var(--color-text-muted, #999) !important;
   pointer-events: none;
 }
-.boutique-product-card {
-  cursor: pointer;
-}
+/* boutique-product-card cursor merged above */
 @media (max-width: 768px) {
   .product-overlay__body {
     grid-template-columns: 1fr;
