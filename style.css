@@ -3538,6 +3538,40 @@ textarea.blog-comments__input {
 /* --- Wider modal variant --- */
 .modal-card--wide {
   max-width: 520px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* Barre de défilement stylisée pour la modale */
+.modal-card--wide::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-card--wide::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-card--wide::-webkit-scrollbar-thumb {
+  background: oklch(from var(--color-primary) l c h / 0.35);
+  border-radius: 4px;
+}
+.modal-card--wide::-webkit-scrollbar-thumb:hover {
+  background: oklch(from var(--color-primary) l c h / 0.55);
+}
+.modal-card--wide {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(from var(--color-primary) l c h / 0.35) transparent;
+}
+
+/* Bouton de fermeture sticky quand la modale scroll */
+.modal-card--wide .modal-close {
+  position: sticky;
+  top: var(--space-3);
+  margin-left: auto;
+  margin-bottom: calc(var(--space-3) * -1);
+  z-index: 2;
+  background: var(--color-bg);
 }
 
 /* --- Service name display --- */
