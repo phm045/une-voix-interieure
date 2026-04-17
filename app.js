@@ -2313,6 +2313,27 @@ function getComments(articleId) {
 
       console.log('[Stripe] Commande enregistr\u00e9e:', serviceName, montant + '\u20ac');
 
+      // Toast de confirmation paiement Stripe
+      (function() {
+        var toast = document.createElement('div');
+        toast.className = 'toast-confirmation toast-confirmation--show';
+        toast.innerHTML = '<div class="toast-confirmation__icon">&#10004;</div>' +
+          '<div class="toast-confirmation__body">' +
+            '<strong>Paiement confirm\u00e9\u00a0!</strong><br>' +
+            serviceName + ' \u2014 ' + montant.toFixed(2) + '\u00a0\u20ac enregistr\u00e9 dans vos commandes.' +
+          '</div>' +
+          '<button class="toast-confirmation__close" aria-label="Fermer">&times;</button>';
+        document.body.appendChild(toast);
+        toast.querySelector('.toast-confirmation__close').addEventListener('click', function() {
+          toast.classList.remove('toast-confirmation--show');
+          setTimeout(function() { toast.remove(); }, 400);
+        });
+        setTimeout(function() {
+          toast.classList.remove('toast-confirmation--show');
+          setTimeout(function() { toast.remove(); }, 400);
+        }, 6000);
+      })();
+
       // Vider le panier apr\u00e8s paiement r\u00e9ussi (local + Supabase)
       try { localStorage.removeItem('lumiere_cart'); } catch(ce) {}
       try { clearCartSupabase(); } catch(cse) {}
@@ -2818,6 +2839,28 @@ function getComments(articleId) {
       }, 'enregistrement commande PayPal');
 
       console.log('[PayPal] Commande enregistrée:', serviceName, amount + '€');
+
+      // Toast de confirmation paiement PayPal
+      (function() {
+        var toast = document.createElement('div');
+        toast.className = 'toast-confirmation toast-confirmation--show';
+        toast.innerHTML = '<div class="toast-confirmation__icon">&#10004;</div>' +
+          '<div class="toast-confirmation__body">' +
+            '<strong>Paiement PayPal confirmé !</strong><br>' +
+            serviceName + ' — ' + amount.toFixed(2) + ' € enregistré dans vos commandes.' +
+          '</div>' +
+          '<button class="toast-confirmation__close" aria-label="Fermer">&times;</button>';
+        document.body.appendChild(toast);
+        toast.querySelector('.toast-confirmation__close').addEventListener('click', function() {
+          toast.classList.remove('toast-confirmation--show');
+          setTimeout(function() { toast.remove(); }, 400);
+        });
+        setTimeout(function() {
+          toast.classList.remove('toast-confirmation--show');
+          setTimeout(function() { toast.remove(); }, 400);
+        }, 6000);
+      })();
+
       showPage('mon-compte');
       setTimeout(function() {
         var btnCmd = document.querySelector('[data-tab="commandes"]');
@@ -2896,7 +2939,7 @@ function getComments(articleId) {
       var sectionLabels = { 'blog': 'Nouveau sur le blog', 'boutique': 'Nouveaut\u00e9 boutique', 'service': 'Mise \u00e0 jour des services' };
       var sectionLabel = sectionLabels[type] || 'Nouveaut\u00e9';
       var sujet = sectionLabel + ' : ' + titre;
-      var siteUrl = 'https://phm045.github.io/une-voix-interieure';
+      var siteUrl = 'https://une-voix-interieure.fr';
       var sectionUrl = siteUrl + '/#' + (type === 'blog' ? 'blog' : 'boutique');
 
       var htmlContent = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>'
@@ -5817,13 +5860,14 @@ function getComments(articleId) {
 
           localStorage.removeItem(CART_KEY);
           updateCartUI();
-          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+          // Rediriger dans le même onglet pour préserver la session Supabase au retour
+          window.location.href = paymentUrl;
           closeCartDrawer();
         } else {
           // Multiple products: open each Payment Link in sequence
           // (Stripe Payment Links don't support multi-product in one link)
           // Use Edge Function to create a combined Checkout Session
-          var siteUrl = 'https://phm045.github.io/une-voix-interieure';
+          var siteUrl = 'https://une-voix-interieure.fr';
           var slugs = cart.map(function(item) { return item.slug; }).join(',');
           var successUrl = siteUrl + '?session_id={CHECKOUT_SESSION_ID}&service=boutique_' + encodeURIComponent(slugs);
           var cancelUrl = siteUrl + '/#boutique';
