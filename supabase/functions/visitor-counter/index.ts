@@ -56,7 +56,7 @@ serve(async (req) => {
     const updateResp = await fetch(`${supabaseUrl}/rest/v1/visiteurs?id=eq.1`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ total: newCount, updated_at: new Date().toISOString() }),
+      body: JSON.stringify({ total: newCount }),
     });
 
     if (!updateResp.ok) {
