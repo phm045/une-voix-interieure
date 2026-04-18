@@ -8614,8 +8614,8 @@ function getComments(articleId) {
       }
       html += '</div>';
       container.innerHTML = html;
-      // Rendu de la carte
-      rendreCarteVisiteurs(data);
+      // Rendu de la carte (charge ses propres données géolocalisées, indépendamment du filtre)
+      chargerCarteVisiteurs();
       adminCacheSet('tab_visiteurs', html);
       initResizableColumns(container.querySelector('.admin-dash-table--visiteurs'));
     } catch(e) {
@@ -8628,6 +8628,23 @@ function getComments(articleId) {
   // ── Carte interactive visiteurs (Leaflet) ──
   var _carteVisiteursInstance = null;
   var _carteVisiteursPoints = [];
+
+  // Charge TOUTES les visites géolocalisées (indépendamment du filtre tableau)
+  async function chargerCarteVisiteurs() {
+    try {
+      var result = await supabase
+        .from('visites_log')
+        .select('ville,pays,region,ip,latitude,longitude,code_postal,isp,page,created_at')
+        .not('latitude', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (!result.error && result.data) {
+        rendreCarteVisiteurs(result.data);
+      }
+    } catch(e) {
+      // Silencieux
+    }
+  }
 
   function rendreCarteVisiteurs(data) {
     var wrapper = document.getElementById('admin-visiteurs-map-wrapper');
