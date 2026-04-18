@@ -6593,7 +6593,8 @@ textarea.blog-comments__input {
 }
 
 .admin-dash-table--visiteurs .admin-dash-table__row {
-  grid-template-columns: 135px 120px minmax(80px, 1fr) minmax(80px, 1fr) 90px 80px;
+  grid-template-columns: 110px 115px minmax(70px, 1fr) minmax(70px, 0.8fr) 70px 90px 100px 80px;
+  min-width: 0;
 }
 
 .admin-dash-table__row--highlight {
