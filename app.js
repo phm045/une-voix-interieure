@@ -8639,8 +8639,14 @@ function getComments(articleId) {
         var ipDisplay = v.ip || '\u2014';
         // Ville : avec code postal + lien Google Maps si coordonn\u00e9es disponibles
         var villeLabel = v.ville ? (v.code_postal ? v.ville + '\u00a0(' + v.code_postal + ')' : v.ville) : '\u2014';
-        var villeDisplay = (v.latitude && v.longitude && v.ville)
-          ? '<a href="https://maps.google.com/?q=' + v.latitude + ',' + v.longitude + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline dotted;">' + escHtml(villeLabel) + '</a>'
+        // Lien Google Maps : accepter lat=0 et lon=0 (méridien/équateur), rejeter uniquement null/NaN/hors-plage
+        var vLat = (v.latitude  != null) ? Number(v.latitude)  : NaN;
+        var vLon = (v.longitude != null) ? Number(v.longitude) : NaN;
+        var coordsValides = isFinite(vLat) && isFinite(vLon) &&
+                            vLat >= -90 && vLat <= 90 && vLon >= -180 && vLon <= 180 &&
+                            !(vLat === 0 && vLon === 0);
+        var villeDisplay = (coordsValides && v.ville)
+          ? '<a href="https://maps.google.com/?q=' + vLat + ',' + vLon + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline dotted;">' + escHtml(villeLabel) + '</a>'
           : escHtml(villeLabel);
         var regionDisplay = v.region || '\u2014';
         var paysDisplay = v.pays || '\u2014';
