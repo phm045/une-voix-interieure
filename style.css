@@ -1554,6 +1554,12 @@ section {
   max-width: 420px;
   margin-inline: auto;
 }
+/* Desktop : élargir la card pour éviter le wrap inutile des labels */
+@media (min-width: 768px) {
+  .horaires-card {
+    max-width: 640px;
+  }
+}
 .horaires-card__icon {
   flex-shrink: 0;
   width: 48px;
