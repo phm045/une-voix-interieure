@@ -2437,8 +2437,8 @@ function getComments(articleId) {
         });
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
-            '<span class="compte-liste__service">' + c.service + '</span>' +
-            '<span class="compte-liste__date">' + date + ' — ' + c.methode_paiement + '</span>' +
+            '<span class="compte-liste__service">' + sanitizeForHtml(c.service || '') + '</span>' +
+            '<span class="compte-liste__date">' + date + ' — ' + sanitizeForHtml(c.methode_paiement || '') + '</span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:0.75rem">' +
             '<span class="compte-liste__statut compte-liste__statut--paye">Pay\u00e9</span>' +
@@ -2477,8 +2477,8 @@ function getComments(articleId) {
         var methode = c.methode_paiement === 'stripe' ? 'Carte bancaire' : 'PayPal';
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
-            '<span class="compte-liste__service">' + methode + '</span>' +
-            '<span class="compte-liste__date">' + date + ' — ' + c.service + '</span>' +
+            '<span class="compte-liste__service">' + sanitizeForHtml(methode) + '</span>' +
+            '<span class="compte-liste__date">' + date + ' — ' + sanitizeForHtml(c.service || '') + '</span>' +
           '</div>' +
           '<span class="compte-liste__montant">' + Number(c.montant).toFixed(2) + ' \u20ac</span>' +
         '</div>';
@@ -2522,8 +2522,8 @@ function getComments(articleId) {
         var scopeLabel = scopeLabels[c.applicable_a] || '';
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
-            '<span class="compte-liste__coupon-code">' + c.code + '</span>' +
-            '<span class="compte-liste__coupon-desc">' + c.description + (scopeLabel ? ' \u2022 ' + scopeLabel : '') + '</span>' +
+            '<span class="compte-liste__coupon-code">' + sanitizeForHtml(c.code || '') + '</span>' +
+            '<span class="compte-liste__coupon-desc">' + sanitizeForHtml(c.description || '') + (scopeLabel ? ' \u2022 ' + sanitizeForHtml(scopeLabel) : '') + '</span>' +
             '<span class="compte-liste__date">Utilis\u00e9 le ' + date + '</span>' +
           '</div>' +
           '<span class="compte-liste__statut compte-liste__statut--actif">' + reduction + '</span>' +
@@ -2687,7 +2687,7 @@ function getComments(articleId) {
 
         return '<div class="compte-liste__item">' +
           '<div class="compte-liste__info">' +
-            '<span class="compte-liste__service">' + paiementIcone + ' ' + r.service + '</span>' +
+            '<span class="compte-liste__service">' + paiementIcone + ' ' + sanitizeForHtml(r.service || '') + '</span>' +
             '<span class="compte-liste__date">' + dateAffichee + '</span>' +
           '</div>' +
           '<span class="compte-liste__statut ' + (r.statut === 'annul\u00e9' ? 'compte-liste__statut--expire' : (passe ? 'compte-liste__statut--expire' : 'compte-liste__statut--actif')) + '">' + statutTexte + '</span>' +
@@ -3319,7 +3319,7 @@ function getComments(articleId) {
     if (info) {
       var timeStr = new Date(info.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       statusEl.className = 'vm-payment-status vm-payment-status--verified';
-      statusEl.innerHTML = '<span class="vm-payment-status__icon">\u2714</span> Paiement initi\u00e9 via ' + info.method + ' \u00e0 ' + timeStr;
+      statusEl.innerHTML = '<span class="vm-payment-status__icon">\u2714</span> Paiement initi\u00e9 via ' + sanitizeForHtml(info.method || '') + ' \u00e0 ' + sanitizeForHtml(timeStr);
       statusEl.hidden = false;
     } else {
       statusEl.className = 'vm-payment-status vm-payment-status--unverified';
@@ -5576,7 +5576,7 @@ function getComments(articleId) {
       if (allImages.length > 1) {
         var slidesHTML = '';
         for (var si = 0; si < allImages.length; si++) {
-          slidesHTML += '<div class="product-carousel__slide"><img src="' + allImages[si] + '" alt="' + productData.name + ' - photo ' + (si + 1) + '" loading="lazy"></div>';
+          slidesHTML += '<div class="product-carousel__slide"><img src="' + sanitizeForHtml(allImages[si]) + '" alt="' + sanitizeForHtml(productData.name || '') + ' - photo ' + (si + 1) + '" loading="lazy"></div>';
         }
         var dotsHTML = '<div class="product-carousel__dots">';
         for (var di = 0; di < allImages.length; di++) {
@@ -5592,7 +5592,7 @@ function getComments(articleId) {
           '</div>';
         initProductCarousel(galleryEl);
       } else {
-        galleryEl.innerHTML = '<img src="' + allImages[0] + '" alt="' + productData.name + '">';
+        galleryEl.innerHTML = '<img src="' + sanitizeForHtml(allImages[0]) + '" alt="' + sanitizeForHtml(productData.name || '') + '">';
       }
     }
 
@@ -10150,7 +10150,7 @@ function getComments(articleId) {
       });
     } catch(e) {
       if (loadingEl) loadingEl.hidden = true;
-      container.innerHTML = '<p class="dispo-liste__vide" style="color:var(--color-error,#e55);">' + (e.message || 'Erreur de chargement') + '</p>';
+      container.innerHTML = '<p class="dispo-liste__vide" style="color:var(--color-error,#e55);">' + sanitizeForHtml(e.message || 'Erreur de chargement') + '</p>';
       console.error('chargerAdminTherapie:', e);
     }
   }
